@@ -11,6 +11,8 @@ Usage: python px4parser <log.bin>  [-e] [-d delimiter] [-n] [-m MSG[.field1,fiel
     -d  Use "delimiter" in file. Default is TAB.
     
     -n  Use custom namespace.
+
+    -c  Use constant clock.
     
     -m MSG[.field1,field2,...]
         Dump only messages of specified type, and only specified fields.
@@ -20,7 +22,7 @@ Usage: python px4parser <log.bin>  [-e] [-d delimiter] [-n] [-m MSG[.field1,fiel
 """
 
 __author__  = "Roman " + "broken_cursor" + " Shvindt. Based on sdlog2_dump"
-__version__ = "v0.4_release"
+__version__ = "v0.4.1_release"
 
 import struct, sys
 
@@ -76,7 +78,7 @@ class SDLog2Parser:
     __prev_data = []
     __next_data = []
     __constant_clock = False
-    __msg_count = 0
+    msg_count = 0
     
     def __init__(self):
         return
@@ -173,7 +175,6 @@ class SDLog2Parser:
             bytes_read += self.__ptr
             if not self.__debug_out and self.__time_msg != None and self.__csv_updated:
                 self.__processData()
-        print("done")
         f.close()
     
     def __bytesLeft(self):
@@ -241,9 +242,9 @@ class SDLog2Parser:
                                 if i == self.__time_msg_id:
                                     continue
                                 output[i] = str(float(output[i]) + (float(output[i]) * to_round))
-                                output[self.__time_msg_id] = str(self.__msg_count * 100)
+                                output[self.__time_msg_id] = str(self.msg_count * 100)
                                 self.__printData(output)
-                                self.__msg_count += 1
+                                self.msg_count += 1
                                 tmp = output[:]
                         for id in range(len(output)):
                             if self.__next_data[id] > output[id]:
@@ -252,13 +253,13 @@ class SDLog2Parser:
                                 continue
                             else:
                                 tmp[id] = str(float(output[id]) - (((float(output[id]) - float(self.__next_data[id])) / diff) * count))
-                        tmp[self.__time_msg_id] = str(self.__msg_count * 100)
+                        tmp[self.__time_msg_id] = str(self.msg_count * 100)
                         self.__printData(tmp)                
-                        self.__msg_count += 1
+                        self.msg_count += 1
                 else:
-                    output[0] = str(self.__msg_count)
+                    output[0] = str(self.msg_count)
                     self.__printData(output)
-                    self.__msg_count+=1
+                    self.msg_count+=1
                 self.__prev_data = prev_data[:]
         else:
            self.__printData(data) 
@@ -352,11 +353,12 @@ class SDLog2Parser:
 
 def _main():
     if len(sys.argv) < 2:
-        print("Usage: python sdlog2_dump.py <log.bin> [-v] [-e] [-d delimiter] [-n null] [-m MSG[.field1,field2,...]] [-t TIME_MSG_NAME]\n")
+        print("Usage: python sdlog2_dump.py <log.bin> [-v] [-e] [-d delimiter] [-n] [-c] [-m MSG[.field1,field2,...]] [-t TIME_MSG_NAME]\n")
         print("\t-v\tUse plain debug output instead of CSV.\n")
         print("\t-e\tRecover from errors.\n")
         print("\t-d\tUse \"delimiter\" in CSV. Default is \",\".\n")
-        print("\t-n\tSet custom namespace.\n")
+        print("\t-n\tUse custom namespace.\n")
+        print("\t-c\tUse constant clock.\n")
         print("\t-m MSG[.field1,field2,...]\n\t\tDump only messages of specified type, and only specified fields.\n\t\tMultiple -m options allowed.")
         print("\t-t\tSpecify TIME message name to group data messages by time and significantly reduce duplicate output.\n")
         print("\t-f\tPrint to file instead of stdout")
@@ -417,6 +419,7 @@ def _main():
     else:
         parser.setNamespace(default_namespace)
     parser.process(fn)
+    print("Done\nParsed " + str(parser.msg_count) + " lines")
     
 
 if __name__ == "__main__":
