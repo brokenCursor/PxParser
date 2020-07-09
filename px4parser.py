@@ -354,7 +354,7 @@ class SDLog2Parser:
 def _main():
     if len(sys.argv) < 2:
         print("Usage: python sdlog2_dump.py <log.bin> [-v] [-e] [-d delimiter] [-n] [-c] [-m MSG[.field1,field2,...]] [-t TIME_MSG_NAME]\n")
-        print("\t-v\tUse plain debug output instead of CSV.\n")
+        print("\t-v\tUse plain debug output instead of TXT.\n")
         print("\t-e\tRecover from errors.\n")
         print("\t-d\tUse \"delimiter\" in CSV. Default is \",\".\n")
         print("\t-n\tUse custom namespace.\n")
