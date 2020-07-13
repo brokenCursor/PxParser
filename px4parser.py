@@ -239,13 +239,13 @@ class SDLog2Parser:
                     for count in range(1, diff + 1):
                         if count == 1 and to_round != 1.0:
                             for i in range(len(output)):
-                                if i == self.__time_msg_id:
+                                if i == self.__time_msg_id or output[i] == self.__prev_data[i]:
                                     continue
                                 output[i] = str(float(output[i]) + (float(output[i]) * to_round))
-                                output[self.__time_msg_id] = str(self.msg_count * 100)
-                                self.__printData(output)
-                                self.msg_count += 1
-                                tmp = output[:]
+                            output[self.__time_msg_id] = str(self.msg_count * 100)
+                            self.__printData(output)
+                            self.msg_count += 1
+                            tmp = output[:]
                         for id in range(len(output)):
                             if self.__next_data[id] > output[id]:
                                 tmp[id] = str(float(output[id]) + (((float(self.__next_data[id]) - float(output[id])) / diff) * count))
