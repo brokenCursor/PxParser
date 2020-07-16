@@ -68,8 +68,12 @@ class SDLog2Parser:
     __csv_delim = ","
     __csv_null = ""
     __msg_filter = []
+    __msg_ignore = []
+    __msg_id_ignore = []
     __time_msg = None
     __time_msg_id = 0
+    __data_msg = None
+    __data_msg_id = 0
     __debug_out = False
     __correct_errors = False
     __file_name = None
@@ -110,6 +114,9 @@ class SDLog2Parser:
     
     def setTimeMsg(self, time_msg):
         self.__time_msg = time_msg
+
+    def setDataMsg(self, data_msg):
+        self.__data_msg = data_msg
     
     def setDebugOut(self, debug_out):
         self.__debug_out = debug_out
@@ -119,6 +126,9 @@ class SDLog2Parser:
 
     def setConstantClock(self, constant_clock):
         self.__constant_clock = constant_clock
+
+    def setMsgIgnore(self, msg_ignore):
+        self.__msg_ignore = msg_ignore
 
     def setFileName(self, file_name):
     	self.__file_name = file_name
@@ -197,8 +207,11 @@ class SDLog2Parser:
             for field in show_fields:
                 full_label = msg_name + "_" + field
                 self.__csv_columns.append(full_label)
-                self.__csv_data[full_label] = None 
-
+                self.__csv_data[full_label] = None
+        for i in self.__csv_columns:
+            if i in self.__msg_ignore:
+                self.__msg_id_ignore.append(self.__csv_columns.index(i))
+        self.__data_msg_id = self.__csv_columns.index(self.__data_msg)
         self.__time_msg_id = self.__csv_columns.index(self.__time_msg)
 
         headers = []
@@ -206,6 +219,8 @@ class SDLog2Parser:
             for column in self.__csv_columns:
                 if column in self.__namespace:
                     headers.append(self.__namespace[column])
+                else:
+                    headers.append(column)
         else:
             headers = self.__csv_columns
 
@@ -239,18 +254,21 @@ class SDLog2Parser:
                     for count in range(1, diff + 1):
                         if count == 1 and to_round != 1.0:
                             for i in range(len(output)):
-                                if i == self.__time_msg_id or output[i] == self.__prev_data[i]:
+                                if i == self.__time_msg_id or output[i] == self.__prev_data[i] or i in self.__msg_id_ignore:
                                     continue
-                                output[i] = str(float(output[i]) + (float(output[i]) * to_round))
+                                if self.__next_data[i] > output[i]:
+                                    output[i] = str(float(output[i]) + (float(output[i]) * to_round))
+                                else:
+                                    output[i] = str(float(output[i]) - (float(output[i]) * to_round))
                             output[self.__time_msg_id] = str(self.msg_count * 100)
                             self.__printData(output)
                             self.msg_count += 1
                             tmp = output[:]
                         for id in range(len(output)):
-                            if self.__next_data[id] > output[id]:
-                                tmp[id] = str(float(output[id]) + (((float(self.__next_data[id]) - float(output[id])) / diff) * count))
-                            elif self.__next_data[id] == output[id]:
+                            if id in self.__msg_id_ignore or self.__next_data[id] == output[id]:
                                 continue
+                            elif self.__next_data[id] > output[id]:
+                                tmp[id] = str(float(output[id]) + (((float(self.__next_data[id]) - float(output[id])) / diff) * count))
                             else:
                                 tmp[id] = str(float(output[id]) - (((float(output[id]) - float(self.__next_data[id])) / diff) * count))
                         tmp[self.__time_msg_id] = str(self.msg_count * 100)
@@ -322,7 +340,7 @@ class SDLog2Parser:
                 print("MSG %s: %s" % (msg_name, ", ".join(s)))
 
             else:
-                # update CSV data buffer
+                # update  data buffer
                 for i in range(len(data)):
                     label = msg_labels[i]
                     if label in show_fields:
@@ -337,14 +355,18 @@ class SDLog2Parser:
         
     def __printData(self, data): #print to output
         for id in range(len(data)):
-            data[id] = data[id].strip()
+
+            if id == self.__data_msg_id:
+                #data[id] = data[id].strip("'").lstrip("b'").rstrip("\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00")
+                continue
+
             if len(data[id]) > 10 and id != self.__time_msg_id:
                 data[id] = data[id][:8]
             elif len(data[id]) < 8:# and len(data[id]) > 3:
                 data[id] += '\t'
             #elif len(data[id]) <= 3:
             #    data[id] += '\t'
-
+        data[self.__data_msg_id] = data[self.__data_msg_id].strip("'").lstrip("b'").strip("\x00")
         if self.__file != None:
             print(self.__csv_delim.join(data), file=self.__file)
         else:
@@ -353,7 +375,7 @@ class SDLog2Parser:
 
 def _main():
     if len(sys.argv) < 2:
-        print("Usage: python sdlog2_dump.py <log.bin> [-v] [-e] [-d delimiter] [-n] [-c] [-m MSG[.field1,field2,...]] [-t TIME_MSG_NAME]\n")
+        print("Usage: python px4parser.py <log.bin> [-v] [-e] [-d delimiter] [-n] [-c] [-m MSG[.field1,field2,...]] [-t TIME_MSG_NAME]\n")
         print("\t-v\tUse plain debug output instead of TXT.\n")
         print("\t-e\tRecover from errors.\n")
         print("\t-d\tUse \"delimiter\" in CSV. Default is \",\".\n")
@@ -366,10 +388,12 @@ def _main():
     fn = sys.argv[1]
     debug_out = False
     correct_errors = False
-    msg_filter = [('GPS', ['TimeUS', 'Lng', 'Lat', 'Spd']), ('BARO', ['Alt']), ('AHR2', ['Roll', 'Pitch', 'Yaw'])]
+    msg_filter = [('GPS', ['TimeUS', 'Lng', 'Lat', 'Spd']), ('BARO', ['Alt']), ('AHR2', ['Roll', 'Pitch', 'Yaw']), ('MSG', ['Message'])]
     csv_null = ""
     csv_delim = "\t"
     time_msg = "GPS_TimeUS"
+    data_msg = "MSG_Message"
+    msg_ignore = [time_msg, data_msg]
     file_name = None
     constant_clock = False
     opt = None
@@ -410,6 +434,7 @@ def _main():
     parser.setCSVNull(csv_null)
     parser.setMsgFilter(msg_filter)
     parser.setTimeMsg(time_msg)
+    parser.setDataMsg(data_msg)
     parser.setFileName(file_name)
     parser.setDebugOut(debug_out)
     parser.setConstantClock(constant_clock)
@@ -418,8 +443,9 @@ def _main():
         parser.setNamespace(custom_namespace)
     else:
         parser.setNamespace(default_namespace)
+    parser.setMsgIgnore(msg_ignore)
     parser.process(fn)
-    print("Done\nParsed " + str(parser.msg_count) + " lines")
+    print("Done\nParsed " + str(parser.msg_count + 1) + " lines")
     
 
 if __name__ == "__main__":
