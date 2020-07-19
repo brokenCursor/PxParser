@@ -22,7 +22,7 @@ Usage: python px4parser <log.bin>  [-e] [-d delimiter] [-n] [-m MSG[.field1,fiel
 """
 
 __author__  = "Roman " + "broken_cursor" + " Shvindt. Based on sdlog2_dump"
-__version__ = "v0.4.1_release"
+__version__ = "v0.5_release"
 
 import struct, sys
 
@@ -65,72 +65,73 @@ class SDLog2Parser:
         "q": ("q", None),
         "Q": ("Q", None),
     }
-    __csv_delim = ","
-    __csv_null = ""
-    __msg_filter = []
-    __msg_ignore = []
-    __msg_id_ignore = []
-    __time_msg = None
-    __time_msg_id = 0
-    __data_msg = None
-    __data_msg_id = 0
-    __debug_out = False
-    __correct_errors = False
-    __file_name = None
-    __file = None
-    __namespace = {}
-    __prev_data = []
+    __delim_char = "\t"             # Character to put in between columns
+    __null_char = ""                # Charecter to put if there is no data in column 
+    __msg_filter = []               # List of messages to output
+    __msg_ignore = []               # List of messages to ignore during processing
+    __msg_id_ignore = []            # IDs of messages to ignore during processing. Fills automaticaly from data in __msg_ignore
+    __time_msg = None               # Name of the message that contains time
+    __time_msg_id = 0               # Time message ID. Fills automaticaly
+    __status_msg = None             # Name of the status message
+    __status_msg_id = 0             # ID of the status message. Fills automaticaly
+    __debug_out = False             # Debug output flag
+    __correct_errors = False        # Error corrcetion flag
+    __file = None                   # Output file name
+    __namespace = {}                # Columns names to print instead of __txt_columns
+    __prev_data = []                
     __next_data = []
-    __constant_clock = False
-    msg_count = 0
+    __constant_clock = False        # Constant message output clock flag
+    msg_count = 0                   
     
     def __init__(self):
         return
 
     
-    def reset(self):
-        self.__msg_descrs = {}      # message descriptions by message type map
-        self.__msg_labels = {}      # message labels by message name map
-        self.__msg_names = []       # message names in the same order as FORMAT messages
-        self.__buffer = bytearray() # buffer for input binary data
-        self.__ptr = 0              # read pointer in buffer
-        self.__csv_columns = []     # CSV file columns in correct order in format "MSG.label"
-        self.__csv_data = {}        # current values for all columns
-        self.__csv_updated = False
+    def reset(self):                # Reset variables default
+        self.__msg_descrs = {}      # Message descriptions by message type map
+        self.__msg_labels = {}      # Message labels by message name map
+        self.__msg_names = []       # Message names in the same order as FORMAT messages
+        self.__buffer = bytearray() # Buffer for input binary data
+        self.__pointer = 0          # Read pointer in buffer
+        self.__txt_columns = []     # CSV file columns in correct order in format "MSG.label"
+        self.__txt_data = {}        # Current values for all columns
+        self.__txt_updated = False  # Is updated flag
         self.__msg_filter_map = {}  # filter in form of map, with '*" expanded to full list of fields
-        self.__prev_data = []
+        self.__prev_data = []       # Previous data buffer 
+        self.__next_data = []       # Next data buffer
+        self.msg_count = 0          # Printed messages count
     
-    def setNamespace(self, namespace):
+    def setNamespace(self, namespace):      # Set a custom namespace to print instead of __txt_columns
         self.__namespace = namespace
 
-    def setCSVDelimiter(self, csv_delim):
-        self.__csv_delim = csv_delim
+    def setDelimiterChar(self, csv_delim):  # Set a char to print in between columns
+        self.__delim_char = csv_delim
     
-    def setCSVNull(self, csv_null):
-        self.__csv_null = csv_null
+    def setNullChar(self, csv_null):        # Set a char to print if there is no data in the column
+        self.__null_char = csv_null
     
-    def setMsgFilter(self, msg_filter):
+    def setMsgFilter(self, msg_filter):     # Set a filter of messages to output
         self.__msg_filter = msg_filter
     
-    def setTimeMsg(self, time_msg):
+    def setTimeMsg(self, time_msg):         # Set time message name
         self.__time_msg = time_msg
 
-    def setDataMsg(self, data_msg):
-        self.__data_msg = data_msg
+    def setDataMsg(self, status_msg):       # Set a status message name
+        self.__status_msg = status_msg
     
-    def setDebugOut(self, debug_out):
+    def setDebugOut(self, debug_out):       # Set a debug output flag
         self.__debug_out = debug_out
 
-    def setCorrectErrors(self, correct_errors):
+    def setCorrectErrors(self, correct_errors): # Set an error correction flag
         self.__correct_errors = correct_errors
 
-    def setConstantClock(self, constant_clock):
+    def setConstantClock(self, constant_clock): # Set a constant clock flag
         self.__constant_clock = constant_clock
 
-    def setMsgIgnore(self, msg_ignore):
+    def setMsgIgnore(self, msg_ignore):     # Set a list of messages to ignore during processing
         self.__msg_ignore = msg_ignore
 
-    def setFileName(self, file_name):
+    def setFileName(self, file_name):       # Set an output file's name
     	self.__file_name = file_name
     	if file_name != None:
     		self.__file = open(file_name, 'w+')
@@ -138,7 +139,7 @@ class SDLog2Parser:
     		self.__file = None
 
     
-    def process(self, fn):
+    def process(self, fn): # Main function
         self.reset()
         if self.__debug_out:
             # init __msg_filter_map
@@ -151,18 +152,18 @@ class SDLog2Parser:
             chunk = f.read(self.BLOCK_SIZE)
             if len(chunk) == 0:
                 break
-            self.__buffer = self.__buffer[self.__ptr:] + chunk
-            self.__ptr = 0
+            self.__buffer = self.__buffer[self.__pointer:] + chunk
+            self.__pointer = 0
             while self.__bytesLeft() >= self.MSG_HEADER_LEN:
-                head1 = self.__buffer[self.__ptr]
-                head2 = self.__buffer[self.__ptr+1]
+                head1 = self.__buffer[self.__pointer]
+                head2 = self.__buffer[self.__pointer+1]
                 if (head1 != self.MSG_HEAD1 or head2 != self.MSG_HEAD2):
                     if self.__correct_errors:
-                        self.__ptr += 1
+                        self.__pointer += 1
                         continue
                     else:
-                        raise Exception("Invalid header at %i (0x%X): %02X %02X, must be %02X %02X" % (bytes_read + self.__ptr, bytes_read + self.__ptr, head1, head2, self.MSG_HEAD1, self.MSG_HEAD2))
-                msg_type = self.__buffer[self.__ptr+2]
+                        raise Exception("Invalid header at %i (0x%X): %02X %02X, must be %02X %02X" % (bytes_read + self.__pointer, bytes_read + self.__pointer, head1, head2, self.MSG_HEAD1, self.MSG_HEAD2))
+                msg_type = self.__buffer[self.__pointer+2]
                 if msg_type == self.MSG_TYPE_FORMAT:
                     # parse FORMAT message
                     if self.__bytesLeft() < self.MSG_FORMAT_PACKET_LEN:
@@ -177,65 +178,67 @@ class SDLog2Parser:
                     if self.__bytesLeft() < msg_length:
                         break
                     if first_data_msg:
-                        # build CSV columns and init data map
+                        # build TXT columns and init data map
                         if not self.__debug_out:
-                            self.__initCSV()
+                            self.__initOutput()
                         first_data_msg = False
                     self.__parseMsg(msg_descr)
-            bytes_read += self.__ptr
-            if not self.__debug_out and self.__time_msg != None and self.__csv_updated:
+            bytes_read += self.__pointer
+            if not self.__debug_out and self.__time_msg != None and self.__txt_updated:
                 self.__processData()
         f.close()
     
-    def __bytesLeft(self):
-        return len(self.__buffer) - self.__ptr
+    def __bytesLeft(self):              # Get an amout of bytes left 
+        return len(self.__buffer) - self.__pointer
     
-    def __filterMsg(self, msg_name):
+    def __filterMsg(self, msg_name):    # Process filtering
         show_fields = "*"
         if len(self.__msg_filter_map) > 0:
             show_fields = self.__msg_filter_map.get(msg_name)
         return show_fields
     
-    def __initCSV(self):
-        if len(self.__msg_filter) == 0:
+    def __initOutput(self):             # Init programs output
+        if len(self.__msg_filter) == 0: # If filter is impty, fill it with eptyness sings
             for msg_name in self.__msg_names:
                 self.__msg_filter.append((msg_name, "*"))
-        for msg_name, show_fields in self.__msg_filter:
+
+        for msg_name, show_fields in self.__msg_filter:         # Fill in __txt_columns and __txt_data in accrodig to the __msg_filter
             if show_fields == "*":
                 show_fields = self.__msg_labels.get(msg_name, [])
             self.__msg_filter_map[msg_name] = show_fields
             for field in show_fields:
                 full_label = msg_name + "_" + field
-                self.__csv_columns.append(full_label)
-                self.__csv_data[full_label] = None
-        for i in self.__csv_columns:
-            if i in self.__msg_ignore:
-                self.__msg_id_ignore.append(self.__csv_columns.index(i))
-        self.__data_msg_id = self.__csv_columns.index(self.__data_msg)
-        self.__time_msg_id = self.__csv_columns.index(self.__time_msg)
+                self.__txt_columns.append(full_label)
+                self.__txt_data[full_label] = None
 
-        headers = []
-        if self.__namespace:
-            for column in self.__csv_columns:
-                if column in self.__namespace:
+        for i in self.__txt_columns:                            # Fill in __msg_ignore_id in accroding to the __msg_ignore
+            if i in self.__msg_ignore:                          # If message name is present in __msg_ignore
+                self.__msg_id_ignore.append(self.__txt_columns.index(i)) # Put it's ID from __txt_columns to __msg_ignore_id
+        self.__status_msg_id = self.__txt_columns.index(self.__status_msg) # Get status message id from __txt_columns and put it in __status_msg_id
+        self.__time_msg_id = self.__txt_columns.index(self.__time_msg)     # Get time message id from __txt_columns and put it in __time_msg_id
+
+        headers = [] # Create a headers list
+        if self.__namespace: # If __namespace is not empty (i.e use __namespace instead of __txt_columns in output)
+            for column in self.__txt_columns: # Check every column
+                if column in self.__namespace: # If it has a custom name, use it
                     headers.append(self.__namespace[column])
                 else:
-                    headers.append(column)
+                    headers.append(column) # If there doest have a custom name, use default from __txt_columns 
         else:
-            headers = self.__csv_columns
+            headers = self.__txt_columns # If there isn't 
 
         if self.__file != None:
-            print(self.__csv_delim.join(headers), file=self.__file)
+            print(self.__delim_char.join(headers), file=self.__file)
         else:
-            print(self.__csv_delim.join(headers))
+            print(self.__delim_char.join(headers))
     
 
     def __processData(self): #Process data 
         data = []
-        for full_label in self.__csv_columns: #parse into list data
-            v = self.__csv_data[full_label]
+        for full_label in self.__txt_columns: #parse into list data
+            v = self.__txt_data[full_label]
             if v == None:
-                v = self.__csv_null
+                v = self.__null_char
             else:
                 v = str(v)
             data.append(v)
@@ -284,9 +287,9 @@ class SDLog2Parser:
 
     def __parseMsgDescr(self):
         if runningPython3:
-            data = struct.unpack(self.MSG_FORMAT_STRUCT, self.__buffer[self.__ptr + 3 : self.__ptr + self.MSG_FORMAT_PACKET_LEN])
+            data = struct.unpack(self.MSG_FORMAT_STRUCT, self.__buffer[self.__pointer + 3 : self.__pointer + self.MSG_FORMAT_PACKET_LEN])
         else:
-            data = struct.unpack(self.MSG_FORMAT_STRUCT, str(self.__buffer[self.__ptr + 3 : self.__ptr + self.MSG_FORMAT_PACKET_LEN]))
+            data = struct.unpack(self.MSG_FORMAT_STRUCT, str(self.__buffer[self.__pointer + 3 : self.__pointer + self.MSG_FORMAT_PACKET_LEN]))
         msg_type = data[0]
         if msg_type != self.MSG_TYPE_FORMAT:
             msg_length = data[1]
@@ -311,19 +314,19 @@ class SDLog2Parser:
                 if self.__filterMsg(msg_name) != None:
                     print("MSG FORMAT: type = %i, length = %i, name = %s, format = %s, labels = %s, struct = %s, mults = %s" % (
                                 msg_type, msg_length, msg_name, msg_format, str(msg_labels), msg_struct, msg_mults))
-        self.__ptr += self.MSG_FORMAT_PACKET_LEN
+        self.__pointer += self.MSG_FORMAT_PACKET_LEN
     
     def __parseMsg(self, msg_descr):
         msg_length, msg_name, msg_format, msg_labels, msg_struct, msg_mults = msg_descr        
-        if not self.__debug_out and self.__time_msg != None and msg_name == self.__time_msg and self.__csv_updated:
+        if not self.__debug_out and self.__time_msg != None and msg_name == self.__time_msg and self.__txt_updated:
             self.__processData()
-            self.__csv_updated = False
+            self.__txt_updated = False
         show_fields = self.__filterMsg(msg_name)
         if (show_fields != None):
             if runningPython3:
-                data = list(struct.unpack(msg_struct, self.__buffer[self.__ptr+self.MSG_HEADER_LEN:self.__ptr+msg_length]))
+                data = list(struct.unpack(msg_struct, self.__buffer[self.__pointer+self.MSG_HEADER_LEN:self.__pointer+msg_length]))
             else:
-                data = list(struct.unpack(msg_struct, str(self.__buffer[self.__ptr+self.MSG_HEADER_LEN:self.__ptr+msg_length])))
+                data = list(struct.unpack(msg_struct, str(self.__buffer[self.__pointer+self.MSG_HEADER_LEN:self.__pointer+msg_length])))
             for i in range(len(data)):
                 if type(data[i]) is str:
                     data[i] = _parseCString(data[i])
@@ -344,33 +347,31 @@ class SDLog2Parser:
                 for i in range(len(data)):
                     label = msg_labels[i]
                     if label in show_fields:
-                        self.__csv_data[msg_name + "_" + label] = data[i]
+                        self.__txt_data[msg_name + "_" + label] = data[i]
                         if self.__time_msg != None and msg_name != self.__time_msg:
-                            self.__csv_updated = True
+                            self.__txt_updated = True
                 if self.__time_msg == None:
                     self.__processData()
 
 
-        self.__ptr += msg_length
+        self.__pointer += msg_length
         
     def __printData(self, data): #print to output
+        print(data)
         for id in range(len(data)):
-
-            if id == self.__data_msg_id:
-                #data[id] = data[id].strip("'").lstrip("b'").rstrip("\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00")
+            if id == self.__status_msg_id:
+                data[self.__status_msg_id] = data[self.__status_msg_id].strip("'").lstrip("b'").strip('\\x00')
                 continue
 
             if len(data[id]) > 10 and id != self.__time_msg_id:
                 data[id] = data[id][:8]
-            elif len(data[id]) < 8:# and len(data[id]) > 3:
+            elif len(data[id]) < 8:
                 data[id] += '\t'
-            #elif len(data[id]) <= 3:
-            #    data[id] += '\t'
-        data[self.__data_msg_id] = data[self.__data_msg_id].strip("'").lstrip("b'").strip("\x00")
+
         if self.__file != None:
-            print(self.__csv_delim.join(data), file=self.__file)
+            print(self.__delim_char.join(data), file=self.__file)
         else:
-            print(self.__csv_delim.join(data))
+            print(self.__delim_char.join(data))
        
 
 def _main():
@@ -378,11 +379,11 @@ def _main():
         print("Usage: python px4parser.py <log.bin> [-v] [-e] [-d delimiter] [-n] [-c] [-m MSG[.field1,field2,...]] [-t TIME_MSG_NAME]\n")
         print("\t-v\tUse plain debug output instead of TXT.\n")
         print("\t-e\tRecover from errors.\n")
-        print("\t-d\tUse \"delimiter\" in CSV. Default is \",\".\n")
+        print("\t-d\tUse \"delimiter\" in output. Default is \",\".\n")
         print("\t-n\tUse custom namespace.\n")
         print("\t-c\tUse constant clock.\n")
         print("\t-m MSG[.field1,field2,...]\n\t\tDump only messages of specified type, and only specified fields.\n\t\tMultiple -m options allowed.")
-        print("\t-t\tSpecify TIME message name to group data messages by time and significantly reduce duplicate output.\n")
+        print("\t-t\tSpecify TIME message name to group data messages by time\n")
         print("\t-f\tPrint to file instead of stdout")
         return
     fn = sys.argv[1]
@@ -430,8 +431,8 @@ def _main():
     if csv_delim == "\\t":
         csv_delim = "\t"
     parser = SDLog2Parser()
-    parser.setCSVDelimiter(csv_delim)
-    parser.setCSVNull(csv_null)
+    parser.setDelimiterChar(csv_delim)
+    parser.setNullChar(csv_null)
     parser.setMsgFilter(msg_filter)
     parser.setTimeMsg(time_msg)
     parser.setDataMsg(data_msg)
