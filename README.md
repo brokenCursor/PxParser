@@ -7,7 +7,7 @@ Commands:
 
     -v     Use plain debug output instead of TXT
      
-    -e	   Recover from errors.
+    -e     Recover from errors.
     
     -d     Use "delimiter" in file. Default is TAB.
     
