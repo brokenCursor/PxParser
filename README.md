@@ -2,8 +2,8 @@
 A PX4 Log parser with customazable namespaces and constant clock functionality.
 
 ## How to use:
-    python px4parser <log.bin>  [-v] [-e] [-d delimiter] [-def] [-eng] [-rus] [-c] [-m MSG[.field1,field2,...]] [-f file.txt]
-Commands:
+    python px4parser.py <log.bin> [-v] [-e] [-d delimiter] [-def] [-eng] [-rus] [-c] [-m MSG[.field1,field2,...]] [-f file.txt]
+### Commands:
 
     -v     Use plain debug output instead of TXT
      
