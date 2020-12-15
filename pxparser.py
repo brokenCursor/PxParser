@@ -105,7 +105,6 @@ class Pxparser:
 
     def __parseCString(self, cstr):
         return str(cstr, 'ascii').split('\0')[0]
-
     
     def process(self, fn): # Main function
         self.reset()
@@ -163,7 +162,7 @@ class Pxparser:
         return show_fields
     
     def __initOutput(self):             # Init programs output
-        if len(self.__msg_filter) == 0: # If filter is impty, fill it with eptyness sings
+        if not self.__msg_filter: # If filter is impty, fill it with eptyness sings
             for msg_name in self.__msg_names:
                 self.__msg_filter.append((msg_name, "*"))
 
@@ -200,26 +199,26 @@ class Pxparser:
 
     def __processData(self): # Process raw data 
         data = []
-        for full_label in self.__txt_columns: # Fill in data accordigly to __txt_columns
-            v = self.__txt_data[full_label]   # Get single string from data dictionary
-            if v == None: # If string is empty
-                v = self.__null_char # Put null character in
-            else:
-                v = str(v) # If there is some data, convert it to a string
-            data.append(v) # Add new string to data list
 
-        if self.__constant_clock: # If constant clock flag is true
+        for full_label in self.__txt_columns: # Fill in data accordigly to __txt_columns
+            val = self.__txt_data[full_label]   # Get single string from data dictionary
+            if not val:
+                val = self.__null_char # Put null character in
+            else:
+                val = str(val) # If there is some data, convert it to a string
+            data.append(val) # Add new string to data list
+
+        if self.__constant_clock:
             if not self.__next_data:
                 self.__next_data = data[:]
-                return False
-            else: # If __next_data contains something 
+            else:
                 curr_data = self.__next_data[:]
-                prev_data = curr_data[:]
-                self.__next_data = data[:] # Update __next_data 
+                self.__prev_data = curr_data[:] # Update __prev_data [:]
+                self.__next_data = data[:] # Update __next_data
                 if self.__prev_data: 
-                    time_diff = ((int(curr_data[self.__time_msg_id]) - int(self.__prev_data[self.__time_msg_id])) // 1000) 
-                    to_round_time = float((100 - (time_diff%100)) * 0.0001) # Calculate a multiplier based on time difference for __curr_data to reach a round digit time
-                    extra_msg_count = time_diff // 100
+                    time_diffence = ((int(curr_data[self.__time_msg_id]) - int(self.__prev_data[self.__time_msg_id])) // 1000) 
+                    to_round_time = float((100 - (time_diffence % 100)) * 0.0001) # Calculate a multiplier based on time difference for __curr_data to reach a round digit time
+                    extra_msg_count = time_diffence // 100
                     for count in range(1, extra_msg_count + 1): 
                         if count == 1 and to_round_time != 1.0: # If it's first extra message and time is not a round number
                             for i in range(len(curr_data)): # Multiply every string in list by to_round_time multiplier
@@ -231,8 +230,8 @@ class Pxparser:
                                     curr_data[i] = str(float(curr_data[i]) - (float(curr_data[i]) * to_round_time)) # Convert string to float, substract (curr_data at id i * to_round_time) from curr_data, convert everything back to string and put into curr_data at id i
                             curr_data[self.__time_msg_id] = str(self.msg_count * 100) # Calculate current time by multiplier amount of messages by clock time (100 ms)
                             self.__printData(curr_data) # Print curr_data
-                            self.msg_count += 1 # Add extra message
-                        tmp = curr_data[:] # Create a temporary dada list
+                            self.msg_count += 1
+                        tmp = curr_data[:]
                         for id in range(len(curr_data)): # Extrapolate data 
                             if id in self.__msg_id_ignore or self.__next_data[id] == curr_data[id]: # If message in ignore list or equal to __next_data
                                 continue
@@ -240,16 +239,14 @@ class Pxparser:
                                 tmp[id] = str(float(curr_data[id]) + (((float(self.__next_data[id]) - float(curr_data[id])) / extra_msg_count) * count)) # Add extrapolation
                             else:  # If curr_data[id] greater than __next_data
                                 tmp[id] = str(float(curr_data[id]) - (((float(curr_data[id]) - float(self.__next_data[id])) / extra_msg_count) * count)) # Substract extrapolation
-                        tmp[self.__time_msg_id] = str(self.msg_count * 100) # Calculate current time by multiplying amount of messages by clock time (100 ms)
+                        tmp[self.__time_msg_id] = str(self.msg_count * 100)
                         self.__printData(tmp)  # Print data              
                         self.msg_count += 1 # Add extra message
-                else: # If __prev_data empty
+                else:
                     curr_data[self.__time_msg_id] = str(self.msg_count * 100) # Calculate current time by multiplying amount of messages by clock time (100 ms)
                     self.__printData(curr_data) # Print data
-                    self.msg_count += 1 # Add extra message
-                self.__prev_data = prev_data[:] # Update __prev_data from dedicated buffer
-        else: # if constant clock is false
-           self.__printData(data) # Print data
+        else:
+           self.__printData(data)
 
     def __parseMsgDescr(self): # Get message description
         # How does it work? idunno
@@ -335,4 +332,5 @@ class Pxparser:
             print(self.__delim_char.join(data), file=self.__file)
         else:
             print(self.__delim_char.join(data))
+        self.msg_count += 1
        

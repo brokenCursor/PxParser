@@ -1,4 +1,4 @@
-import struct, sys
+import sys
 from pxparser import Pxparser 
 
 
@@ -77,7 +77,7 @@ def _main():
     parser.set_time_msg(time_msg)
     parser.set_data_msg(data_msg)
     parser.set_fileanme(file_name)
-    parser.set_debug_flag(debug_out)
+    parser.set_debug_flag(False)
     parser.set_constant_clock_flag(constant_clock)
     parser.set_error_corr_flag(correct_errors)
     if custom_namespace == "def":
