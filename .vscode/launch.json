@@ -1,0 +1,12 @@
+{
+    "configurations": [
+        {
+            "name": "Python: Текущий файл",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "args": ["C:\\Users\\idk\\Desktop\\Проекты\\PX4-Log-Parser\\example_logs\\00000126.BIN", "-c", "-rus", "-f", "C:\\Users\\idk\\Desktop\\Проекты\\PX4-Log-Parser\\test.txt"]
+        }
+    ]
+}
