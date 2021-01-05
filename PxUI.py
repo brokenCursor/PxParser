@@ -26,15 +26,15 @@ class PxMainUI(QMainWindow):
         exitAction.triggered.connect(self.close)
 
         importAction = QAction('Import', self)
-        importAction.setShortcut('Crtl+I')
+        importAction.setShortcut('Ctrl+I')
         importAction.setStatusTip('Import file')
-        importAction.triggered.connect(self.import_file())
+        importAction.triggered.connect(self.import_file)
 
         menubar = self.menuBar()
 
         fileMenu = menubar.addMenu('&File')
         fileMenu.addAction(exitAction)
-        #fileMenu.addAction(importAction)
+        fileMenu.addAction(importAction)
 
         self.show()
 
