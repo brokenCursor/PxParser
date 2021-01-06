@@ -99,11 +99,11 @@ class PxUILayout(object):
         self.menuFile = QtWidgets.QMenu(self.menubar)
         self.menuFile.setObjectName("menuFile")
         MainWindow.setMenuBar(self.menubar)
-        self.progressBar = QtWidgets.QProgressBar(MainWindow)
+        '''self.progressBar = QtWidgets.QProgressBar(MainWindow)'''
         self.statusbar = QtWidgets.QStatusBar(MainWindow)
-        self.statusbar.addPermanentWidget(self.progressBar())
-        self.progressBar.setGeometry(30, 40, 200, 25)
-        self.progressBar.setValue(50)
+#        self.statusbar.addPermanentWidget(self.progressBar())
+        '''self.progressBar.setGeometry(30, 40, 200, 25)
+        self.progressBar.setValue(50)'''
         self.statusbar.setObjectName("statusbar")
         MainWindow.setStatusBar(self.statusbar)
         self.actionImport = QtWidgets.QAction(MainWindow)
