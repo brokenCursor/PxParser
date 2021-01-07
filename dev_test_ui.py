@@ -38,7 +38,10 @@ class PxUILayout(object):
         self.exportButton = QtWidgets.QPushButton(self.horizontalLayoutWidget)
         self.exportButton.setObjectName("exportButton")
         self.buttonsLayout.addWidget(self.exportButton)
-        self.fileTable = QtWidgets.QTableView(self.centralwidget)
+        self.deleteButton = QtWidgets.QPushButton(self.horizontalLayoutWidget)
+        self.importButton.setObjectName("deleteButton")
+        self.buttonsLayout.addWidget(self.deleteButton)
+        self.fileTable = QtWidgets.QTableWidget(self.centralwidget)
         self.fileTable.setGeometry(QtCore.QRect(0, 1, 541, 221))
         self.fileTable.setObjectName("fileTable")
         self.verticalLayoutWidget = QtWidgets.QWidget(self.centralwidget)
@@ -107,12 +110,11 @@ class PxUILayout(object):
         self.menuFile = QtWidgets.QMenu(self.menubar)
         self.menuFile.setObjectName("menuFile")
         MainWindow.setMenuBar(self.menubar)
-        '''self.progressBar = QtWidgets.QProgressBar(MainWindow)'''
         self.statusbar = QtWidgets.QStatusBar(MainWindow)
-#        self.statusbar.addPermanentWidget(self.progressBar())
-        '''self.progressBar.setGeometry(30, 40, 200, 25)
-        self.progressBar.setValue(50)'''
         self.statusbar.setObjectName("statusbar")
+        self.progressBar = QtWidgets.QProgressBar(self)
+        self.statusbar.addPermanentWidget(self.progressBar)
+        self.progressBar.hide()
         MainWindow.setStatusBar(self.statusbar)
         self.actionImport = QtWidgets.QAction(MainWindow)
         self.actionImport.setObjectName("actionImport")
@@ -120,8 +122,11 @@ class PxUILayout(object):
         self.actionExport.setObjectName("actionExport")
         self.actionExit = QtWidgets.QAction(MainWindow)
         self.actionExit.setObjectName("actionExit")
+        self.actionDeleteItem = QtWidgets.QAction(MainWindow)
+        self.actionExit.setObjectName("actionDeleteItem")
         self.menuFile.addAction(self.actionImport)
         self.menuFile.addAction(self.actionExport)
+        self.menuFile.addAction(self.actionDeleteItem)
         self.menuFile.addSeparator()
         self.menuFile.addAction(self.actionExit)
         self.menubar.addAction(self.menuFile.menuAction())
@@ -134,6 +139,7 @@ class PxUILayout(object):
         MainWindow.setWindowTitle(_translate("MainWindow", "PxParser"))
         self.importButton.setText(_translate("MainWindow", "Import"))
         self.exportButton.setText(_translate("MainWindow", "Export"))
+        self.deleteButton.setText(_translate("MainWindow", "Delete"))
         self.ExportTypeLabel.setText(
             _translate("MainWindow", "Export file type"))
         self.txtButton.setText(_translate("MainWindow", ".txt"))
@@ -147,19 +153,21 @@ class PxUILayout(object):
         self.menuFile.setTitle(_translate("MainWindow", "File"))
         self.actionImport.setText(_translate("MainWindow", "Import"))
         self.actionExport.setText(_translate("MainWindow", "Export"))
+        self.actionDeleteItem.setText(_translate("MainWindow", "Delete item"))
         self.actionExit.setText(_translate("MainWindow", "Exit"))
 
 
 class UIController(QtWidgets.QMainWindow, PxUILayout):
 
     export_file_type = 'txt'
-    file_list = list()
+    file_list = set()
 
     def __init__(self):
         super().__init__()
         self.setupUi(self)
         self.setup_actions()
         self.setup_buttons()
+        self.setup_table()
 
     def setup_actions(self):
         self.actionExit.setShortcut('Ctrl+Q')
@@ -174,19 +182,48 @@ class UIController(QtWidgets.QMainWindow, PxUILayout):
         self.actionExport.setStatusTip('Export selected files')
         self.actionExport.triggered.connect(self.export)
 
+        self.actionDeleteItem.setShortcut('Del')
+        self.actionDeleteItem.setStatusTip('Delete selected files')
+        self.actionDeleteItem.triggered.connect(self.table_remove_selected_item)
+
     def setup_buttons(self):
         self.importButton.clicked.connect(self.import_file)
+        self.importButton.setStatusTip('Import file')
         self.exportButton.clicked.connect(self.export)
+        self.deleteButton.clicked.connect(self.table_remove_selected_item)
 
+    def setup_table(self):
+        self.fileTable.setColumnCount(1)
+        header = self.fileTable.horizontalHeader()       
+        header.setSectionResizeMode(0, QtWidgets.QHeaderView.Stretch)
+        self.fileTable.setHorizontalHeaderLabels(['File path'])
+    
+    def table_add_item(self, item):
+        rowPosition = self.fileTable.rowCount()
+        self.fileTable.insertRow(rowPosition)
+        self.fileTable.setItem(rowPosition , 0, QtWidgets.QTableWidgetItem(item))
+
+    def table_remove_selected_item(self):
+        items_to_remove = self.fileTable.selectedItems()
+        for item in items_to_remove:
+            self.file_list.remove(item.text())
+            self.fileTable.removeRow(item.row())
+    
     def get_file_path(self):
         return QtWidgets.QFileDialog.getOpenFileName(self, 'Select file',
                                                      '.', "Log files (*.bin *.ulg)")[0]
 
     def export(self):
-        self.get_selected_file_type()
+        export_as = self.get_selected_file_type()
+        self.progressBar.show()
+        self.table_remove_selected_item()
 
     def import_file(self):
-        self.file_list.append(self.get_file_path())
+        file_path = self.get_file_path()
+        if file_path not in self.file_list:
+            self.table_add_item(file_path)
+            self.file_list.add(file_path)
+
 
     def get_selected_file_type(self):
         if self.txtButton.isChecked():
