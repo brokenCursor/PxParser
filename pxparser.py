@@ -1,6 +1,6 @@
 import struct
 
-class Pxparser:
+class PxParser:
     BLOCK_SIZE = 8192
     MSG_HEADER_LEN = 3
     MSG_HEAD1 = 0xA3

@@ -1,2 +1,4 @@
 # Files
 /*.txt
+/example_logs/fake*.bin
+/__pycache__

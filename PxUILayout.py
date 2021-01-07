@@ -1,8 +1,4 @@
-# -*- coding: utf-8 -*-
-
-import sys
 from PyQt5 import QtCore, QtGui, QtWidgets
-
 
 class PxUILayout(object):
     def setupUi(self, MainWindow):
@@ -20,7 +16,7 @@ class PxUILayout(object):
         self.centralwidget = QtWidgets.QWidget(MainWindow)
         self.centralwidget.setObjectName("centralwidget")
         self.horizontalLayoutWidget = QtWidgets.QWidget(self.centralwidget)
-        self.horizontalLayoutWidget.setGeometry(QtCore.QRect(10, 230, 241, 41))
+        self.horizontalLayoutWidget.setGeometry(QtCore.QRect(10, 230, 250, 40))
         self.horizontalLayoutWidget.setObjectName("horizontalLayoutWidget")
         self.buttonsLayout = QtWidgets.QHBoxLayout(self.horizontalLayoutWidget)
         self.buttonsLayout.setContentsMargins(0, 0, 0, 0)
@@ -148,93 +144,3 @@ class PxUILayout(object):
         self.actionExport.setText(_translate("MainWindow", "Export"))
         self.actionDeleteItem.setText(_translate("MainWindow", "Delete item"))
         self.actionExit.setText(_translate("MainWindow", "Exit"))
-
-
-class UIController(QtWidgets.QMainWindow, PxUILayout):
-
-    export_file_type = 'txt'
-    file_list = set()
-
-    def __init__(self):
-        super().__init__()
-        self.setupUi(self)
-        self.setup_actions()
-        self.setup_buttons()
-        self.setup_table()
-
-    def setup_actions(self):
-        self.actionExit.setShortcut('Ctrl+Q')
-        self.actionExit.setStatusTip('Quit PxParser')
-        self.actionExit.triggered.connect(self.close)
-
-        self.actionImport.setShortcut('Ctrl+I')
-        self.actionImport.setStatusTip('Import file')
-        self.actionImport.triggered.connect(self.import_file)
-
-        self.actionExport.setShortcut('Ctrl+E')
-        self.actionExport.setStatusTip('Export files')
-        self.actionExport.triggered.connect(self.export)
-
-        self.actionDeleteItem.setShortcut('Del')
-        self.actionDeleteItem.setStatusTip('Delete selected files')
-        self.actionDeleteItem.triggered.connect(self.table_remove_selected_item)
-
-    def setup_buttons(self):
-        self.importButton.clicked.connect(self.import_file)
-        self.importButton.setStatusTip('Import file')
-        self.exportButton.clicked.connect(self.export)
-        self.exportButton.setStatusTip('Export files')
-        self.deleteButton.clicked.connect(self.table_remove_selected_item)
-        self.deleteButton.setStatusTip('Delete selected files')
-
-    def setup_table(self):
-        self.fileTable.setColumnCount(1)
-        header = self.fileTable.horizontalHeader()       
-        header.setSectionResizeMode(0, QtWidgets.QHeaderView.Stretch)
-        self.fileTable.setHorizontalHeaderLabels(['File path'])
-    
-    def table_add_item(self, item):
-        rowPosition = self.fileTable.rowCount()
-        self.fileTable.insertRow(rowPosition)
-        self.fileTable.setItem(rowPosition , 0, QtWidgets.QTableWidgetItem(item))
-
-    def table_remove_selected_item(self):
-        items_to_remove = self.fileTable.selectedItems()
-        for item in items_to_remove:
-            self.file_list.remove(item.text())
-            self.fileTable.removeRow(item.row())
-    
-    def get_file_path(self):
-        return QtWidgets.QFileDialog.getOpenFileName(self, 'Select file',
-                                                     '.', "Log files (*.bin *.ulg)")[0]
-
-    def export(self):
-        export_as = self.get_selected_file_type()
-        self.progressBar.show()
-        self.table_remove_selected_item()
-
-    def import_file(self):
-        file_path = self.get_file_path()
-        if file_path not in self.file_list:
-            self.table_add_item(file_path)
-            self.file_list.add(file_path)
-
-
-    def get_selected_file_type(self):
-        if self.txtButton.isChecked():
-            self.export_file_type = 'txt'
-        elif self.csvButton.isChecked():
-            self.export_file_type = 'csv'
-        elif self.xlsxButton.isChecked():
-            self.export_file_type = 'xlsx'
-
-
-def main():
-    app = QtWidgets.QApplication(sys.argv)
-    window = UIController()
-    window.statusBar().showMessage('Ready')
-    window.show()
-    app.exec_()
-
-if __name__ == '__main__':
-    main()
