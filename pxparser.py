@@ -1,4 +1,5 @@
 import struct
+from pathlib import Path
 
 class PxParser:
     BLOCK_SIZE = 8192
@@ -62,6 +63,7 @@ class PxParser:
         self.__prev_data = []       # Previous data buffer 
         self.__next_data = []       # Next data buffer
         self.msg_count = 0          # Printed messages count
+        self.completed_percentage = 0
     
     def set_namespace(self, namespace):      # Set a custom namespace to print instead of __txt_columns
         self.__namespace = namespace
@@ -113,8 +115,10 @@ class PxParser:
                 self.__msg_filter_map[msg_name] = show_fields
         first_data_msg = True
         f = open(fn, "rb")
+        file_size = Path(fn).stat().st_size
         bytes_read = 0
         while True:
+            self.completed_percentage = (bytes_read / file_size) * 100 
             chunk = f.read(self.BLOCK_SIZE)
             if len(chunk) == 0:
                 break

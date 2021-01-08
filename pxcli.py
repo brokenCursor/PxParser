@@ -70,7 +70,7 @@ def _main():
 
     if delim_char == "\\t":
         delim_char = "\t"
-    parser = Pxparser()
+    parser = PxParser()
     parser.set_delimiter_char(delim_char)
     parser.set_null_char(null_char)
     parser.set_msg_filter(msg_filter)

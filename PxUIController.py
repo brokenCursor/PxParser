@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
 
 import sys
+from typing import List
 from PxUILayout import PxUILayout
 from PyQt5 import QtCore, QtWidgets
 
 
 class UIController(QtWidgets.QMainWindow, PxUILayout):
 
-    __export_file_type = 'txt'
     __file_list = set()
 
     def __init__(self):
@@ -48,13 +48,14 @@ class UIController(QtWidgets.QMainWindow, PxUILayout):
         header = self.fileTable.horizontalHeader()
         header.setSectionResizeMode(0, QtWidgets.QHeaderView.Stretch)
         self.fileTable.setHorizontalHeaderLabels(['File path'])
-        self.fileTable.setEditTriggers()
 
     def __table_add_item(self, item):
         rowPosition = self.fileTable.rowCount()
         self.fileTable.insertRow(rowPosition)
+        new_item =  QtWidgets.QTableWidgetItem(item)
+        new_item.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled)
         self.fileTable.setItem(
-            rowPosition, 0, QtWidgets.QTableWidgetItem(item))
+        rowPosition, 0, new_item)
 
     def __table_remove_selected_items(self):
         items_to_remove = self.fileTable.selectedItems()
@@ -65,19 +66,31 @@ class UIController(QtWidgets.QMainWindow, PxUILayout):
             self.__file_list.remove(item.text())
             self.fileTable.removeRow(item.row())
 
+    def __table_get_all_items(self):
+        items = list()
+        for col in range(self.fileTable.columnCount()):
+            for row in range(self.fileTable.rowCount()):
+                items.append(self.fileTable.item(row, col))
+        return items
+
     def __get_file_path(self):
         return QtWidgets.QFileDialog.getOpenFileName(self, 'Select file',
                                                      '.', "Log files (*.bin *.ulg)")[0]
+    
+    def __get_export_directory(self):
+        return QtWidgets.QFileDialog.getExistingDirectory(self, 'Select directory')
 
     def __export(self):
+        export_to = self.__get_export_directory()
         export_as = self.__get_selected_file_type()
         selected_items = self.fileTable.selectedItems()
         if selected_items:
             items_to_export = selected_items
         else:
-            items_to_export = self.fileTable.items()
+            items_to_export = self.__table_get_all_items()
         files_to_export = [item.text() for item in items_to_export]
-
+        for file in files_to_export:
+            pass
         self.progressBar.show()
         self.__table_remove_items(items_to_export)
 
@@ -87,13 +100,14 @@ class UIController(QtWidgets.QMainWindow, PxUILayout):
             self.__table_add_item(file_path)
             self.__file_list.add(file_path)
 
+    def __process
     def __get_selected_file_type(self):
         if self.txtButton.isChecked():
-            self.__export_file_type = 'txt'
+            return 'txt'
         elif self.csvButton.isChecked():
-            self.__export_file_type = 'csv'
+            return 'csv'
         elif self.xlsxButton.isChecked():
-            self.__export_file_type = 'xlsx'
+            return 'xlsx'
 
 
 def main():
