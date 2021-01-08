@@ -1,5 +1,4 @@
 import struct
-from pathlib import Path
 
 class PxParser:
     BLOCK_SIZE = 8192
@@ -63,7 +62,6 @@ class PxParser:
         self.__prev_data = []       # Previous data buffer 
         self.__next_data = []       # Next data buffer
         self.msg_count = 0          # Printed messages count
-        self.completed_percentage = 0
     
     def set_namespace(self, namespace):      # Set a custom namespace to print instead of __txt_columns
         self.__namespace = namespace
@@ -102,9 +100,6 @@ class PxParser:
     	else:
     		self.__file = None
 
-    def get_msg_count(self):
-        return self.__msg_count
-
     def __parseCString(self, cstr):
         return str(cstr, 'ascii').split('\0')[0]
     
@@ -115,10 +110,8 @@ class PxParser:
                 self.__msg_filter_map[msg_name] = show_fields
         first_data_msg = True
         f = open(fn, "rb")
-        file_size = Path(fn).stat().st_size
         bytes_read = 0
         while True:
-            self.completed_percentage = (bytes_read / file_size) * 100 
             chunk = f.read(self.BLOCK_SIZE)
             if len(chunk) == 0:
                 break
@@ -211,16 +204,18 @@ class PxParser:
             else:
                 val = str(val) # If there is some data, convert it to a string
             data.append(val) # Add new string to data list
-
+        #print(data)
         if self.__constant_clock:
             if not self.__next_data:
                 self.__next_data = data[:]
+                return
             else:
                 curr_data = self.__next_data[:]
+                prev_data = curr_data[:]
                 self.__prev_data = curr_data[:] # Update __prev_data [:]
                 self.__next_data = data[:] # Update __next_data
                 if self.__prev_data: 
-                    time_diffence = ((int(curr_data[self.__time_msg_id]) - int(self.__prev_data[self.__time_msg_id])) // 1000) 
+                    time_diffence = ((int(curr_data[self.__time_msg_id]) - int(self.__prev_data[self.__time_msg_id]))) 
                     to_round_time = float((100 - (time_diffence % 100)) * 0.0001) # Calculate a multiplier based on time difference for __curr_data to reach a round digit time
                     extra_msg_count = time_diffence // 100
                     for count in range(1, extra_msg_count + 1): 
@@ -249,6 +244,7 @@ class PxParser:
                 else:
                     curr_data[self.__time_msg_id] = str(self.msg_count * 100) # Calculate current time by multiplying amount of messages by clock time (100 ms)
                     self.__printData(curr_data) # Print data
+            self.__prev_data = prev_data[:]
         else:
            self.__printData(data)
 
@@ -290,7 +286,6 @@ class PxParser:
 
         if (show_fields != None): # If filter is not empty
             data = list(struct.unpack(msg_struct, self.__buffer[self.__pointer+self.MSG_HEADER_LEN:self.__pointer+msg_length])) # Parse data from file to list
-
             for i in range(len(data)):
                 if type(data[i]) is str:
                     data[i] = self.__parseCString(data[i])

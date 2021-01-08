@@ -1,5 +1,5 @@
 import sys
-from PxParser import PxParser 
+from pxparser import PxParser 
 
 
 
@@ -24,7 +24,7 @@ def _main():
     debug_out = False
     correct_errors = False
     file_name = None
-    constant_clock = False
+    constant_clock = True
     custom_namespace = None
     null_char = ""
     delim_char = "\t"
@@ -88,7 +88,6 @@ def _main():
         parser.set_namespace(custom_eng_namespace)
     parser.set_msg_ignore(msg_ignore)
     parser.process(fn)
-    print("Done\nParsed " + str(parser.msg_count + 1) + " lines")
     
 
 if __name__ == "__main__":

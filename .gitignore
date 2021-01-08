@@ -2,3 +2,4 @@
 /*.txt
 /example_logs/fake*.bin
 /__pycache__
+/tmp
