@@ -99,7 +99,7 @@ class UIController(QtWidgets.QMainWindow, PxUILayout):
         if file_path and file_path not in self.__file_list:
             self.__table_add_item(file_path)
             self.__file_list.add(file_path)
- .\pxcli.py .\example_logs\00000126.BIN -eng -c -f test.txt
+ 
     def __process
     def __get_selected_file_type(self):
         if self.txtButton.isChecked():

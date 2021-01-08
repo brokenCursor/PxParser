@@ -46,8 +46,7 @@ class PxParser:
     __prev_data = list()               
     __next_data = list()
     __constant_clock = False
-    __msg_count = 0                   
-    
+    __msg_count = 0
     
     def reset(self):                # Reset variables default
         self.__msg_descrs = {}      # Message descriptions by message type map
@@ -94,11 +93,9 @@ class PxParser:
         self.__msg_ignore = msg_ignore
 
     def set_fileanme(self, file_name):       # Set an output file's name
-    	self.__file_name = file_name
     	if file_name != None:
     		self.__file = open(file_name, 'w+')
-    	else:
-    		self.__file = None
+
 
     def __parseCString(self, cstr):
         return str(cstr, 'ascii').split('\0')[0]
@@ -173,9 +170,9 @@ class PxParser:
                 self.__txt_data[full_label] = None
 
         for i in self.__txt_columns:                            # Fill in __msg_ignore_id in accroding to the __msg_ignore
-            if i in self.__msg_ignore:                          # If message name is present in __msg_ignore
-                self.__msg_id_ignore.append(self.__txt_columns.index(i)) # Put it's ID from __txt_columns to __msg_ignore_id
-        self.__status_msg_id = self.__txt_columns.index(self.__status_msg) # Get status message id from __txt_columns and put it in __status_msg_id
+            if i in self.__msg_ignore:
+                self.__msg_id_ignore.append(self.__txt_columns.index(i))
+        self.__status_msg_id = self.__txt_columns.index(self.__status_msg)
         self.__time_msg_id = self.__txt_columns.index(self.__time_msg)     # Get time message id from __txt_columns and put it in __time_msg_id
 
         headers = []
@@ -188,12 +185,11 @@ class PxParser:
         else:
             headers = self.__txt_columns # If __namesapce is empty, use default columns headers (i.e. __txt_columns)
 
-        if self.__file != None: # Output headers
+        if self.__file:
             print(self.__delim_char.join(headers), file=self.__file)
         else:
             print(self.__delim_char.join(headers))
     
-
     def __processData(self): # Process raw data 
         data = []
 
@@ -204,7 +200,7 @@ class PxParser:
             else:
                 val = str(val) # If there is some data, convert it to a string
             data.append(val) # Add new string to data list
-        #print(data)
+
         if self.__constant_clock:
             if not self.__next_data:
                 self.__next_data = data[:]
@@ -212,32 +208,37 @@ class PxParser:
             else:
                 curr_data = self.__next_data[:]
                 prev_data = curr_data[:]
-                self.__prev_data = curr_data[:] # Update __prev_data [:]
                 self.__next_data = data[:] # Update __next_data
                 if self.__prev_data: 
-                    time_diffence = ((int(curr_data[self.__time_msg_id]) - int(self.__prev_data[self.__time_msg_id]))) 
+                    time_diffence = ((int(curr_data[self.__time_msg_id]) - int(self.__prev_data[self.__time_msg_id])) // 1000) 
                     to_round_time = float((100 - (time_diffence % 100)) * 0.0001) # Calculate a multiplier based on time difference for __curr_data to reach a round digit time
                     extra_msg_count = time_diffence // 100
                     for count in range(1, extra_msg_count + 1): 
                         if count == 1 and to_round_time != 1.0: # If it's first extra message and time is not a round number
                             for i in range(len(curr_data)): # Multiply every string in list by to_round_time multiplier
-                                if i == self.__time_msg_id or curr_data[i] == self.__prev_data[i] or i in self.__msg_id_ignore: # If time message is being processed or curr_data at id [i] and __prev_data at id[i] is equal 
-                                    continue
-                                if self.__next_data[i] > curr_data[i]: # If __next_data is greater than curr_data
-                                    curr_data[i] = str(float(curr_data[i]) + (float(curr_data[i]) * to_round_time)) # Convert string to float, add (curr_data at id i * to_round_time) to curr_data, convert everything back to string and put into curr_data at id i
-                                else:
-                                    curr_data[i] = str(float(curr_data[i]) - (float(curr_data[i]) * to_round_time)) # Convert string to float, substract (curr_data at id i * to_round_time) from curr_data, convert everything back to string and put into curr_data at id i
+                                try:
+                                    if i == self.__time_msg_id or curr_data[i] == self.__prev_data[i] or i in self.__msg_id_ignore: # If time message is being processed or curr_data at id [i] and __prev_data at id[i] is equal 
+                                        continue
+                                    if self.__next_data[i] > curr_data[i]: # If __next_data is greater than curr_data
+                                        curr_data[i] = str(float(curr_data[i]) + (float(curr_data[i]) * to_round_time)) # Convert string to float, add (curr_data at id i * to_round_time) to curr_data, convert everything back to string and put into curr_data at id i
+                                    else:
+                                        curr_data[i] = str(float(curr_data[i]) - (float(curr_data[i]) * to_round_time)) # Convert string to float, substract (curr_data at id i * to_round_time) from curr_data, convert everything back to string and put into curr_data at id i
+                                except ValueError:
+                                    print(float(curr_data[i]))
                             curr_data[self.__time_msg_id] = str(self.msg_count * 100) # Calculate current time by multiplier amount of messages by clock time (100 ms)
                             self.__printData(curr_data) # Print curr_data
                             self.msg_count += 1
                         tmp = curr_data[:]
-                        for id in range(len(curr_data)): # Extrapolate data 
-                            if id in self.__msg_id_ignore or self.__next_data[id] == curr_data[id]: # If message in ignore list or equal to __next_data
-                                continue
-                            elif self.__next_data[id] > curr_data[id]: # If curr_data[id] less than __next_data
-                                tmp[id] = str(float(curr_data[id]) + (((float(self.__next_data[id]) - float(curr_data[id])) / extra_msg_count) * count)) # Add extrapolation
-                            else:  # If curr_data[id] greater than __next_data
-                                tmp[id] = str(float(curr_data[id]) - (((float(curr_data[id]) - float(self.__next_data[id])) / extra_msg_count) * count)) # Substract extrapolation
+                        for id in range(len(curr_data)): # Interpolate data
+                            try:
+                                if id in self.__msg_id_ignore or self.__next_data[id] == curr_data[id]: # If message in ignore list or equal to __next_data
+                                    continue
+                                elif self.__next_data[id] > curr_data[id]: # If curr_data[id] lesser than __next_data
+                                    tmp[id] = str(float(curr_data[id]) + (((float(self.__next_data[id]) - float(curr_data[id])) / extra_msg_count) * count)) # Add extrapolation
+                                else:  # If curr_data[id] greater than __next_data
+                                    tmp[id] = str(float(curr_data[id]) - (((float(curr_data[id]) - float(self.__next_data[id])) / extra_msg_count) * count)) # Substract
+                            except ValueError:
+                                    print(id, tmp)
                         tmp[self.__time_msg_id] = str(self.msg_count * 100)
                         self.__printData(tmp)  # Print data              
                         self.msg_count += 1 # Add extra message
@@ -279,9 +280,6 @@ class PxParser:
     
     def __parseMsg(self, msg_descr): # Get raw data from file
         msg_length, msg_name, msg_format, msg_labels, msg_struct, msg_mults = msg_descr  #Disassemble msg_descr    
-        if not self.__debug_out and self.__time_msg != None and msg_name == self.__time_msg and self.__txt_updated: 
-            self.__processData()
-            self.__txt_updated = False
         show_fields = self.__filterMsg(msg_name) # Get data from filter
 
         if (show_fields != None): # If filter is not empty
@@ -303,7 +301,6 @@ class PxParser:
                 print("MSG %s: %s" % (msg_name, ", ".join(s)))
 
             else: # If debug is disabled
-                # update data buffer
                 for i in range(len(data)): # For every column
                     label = msg_labels[i] # Get label
                     if label in show_fields: # If label is in filter
@@ -312,8 +309,6 @@ class PxParser:
                             self.__txt_updated = True
                 if self.__time_msg == None:
                     self.__processData()
-
-
         self.__pointer += msg_length
         
     def __printData(self, data):
@@ -324,12 +319,10 @@ class PxParser:
 
             if len(data[id]) > 10 and id != self.__time_msg_id: # If message is longer than 10 characters
                 data[id] = data[id][:8] # Trim to 8 characters
-            elif len(data[id]) < 8:
-                data[id] += '\t'
 
-        if self.__file != None: # Print data
+        if self.__file: # Print data
             print(self.__delim_char.join(data), file=self.__file)
         else:
             print(self.__delim_char.join(data))
-        self.msg_count += 1
+            
        
