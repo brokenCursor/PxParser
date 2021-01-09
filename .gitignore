@@ -1,5 +1,7 @@
 # Files
 /*.txt
-/example_logs/fake*.bin
-/__pycache__
-/tmp
+/example_logs/fake*
+/__pycache__/*
+/tmp*
+test.xlsx
+__pycache__/pxparser.cpython-39.pyc

@@ -100,7 +100,6 @@ class UIController(QtWidgets.QMainWindow, PxUILayout):
             self.__table_add_item(file_path)
             self.__file_list.add(file_path)
  
-    def __process
     def __get_selected_file_type(self):
         if self.txtButton.isChecked():
             return 'txt'
