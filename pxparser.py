@@ -1,9 +1,10 @@
-from io import TextIOWrapper
 import struct
-from pathlib import Path
 import xlsxwriter
+from io import TextIOWrapper
 from xlsxwriter.worksheet import Worksheet
-class Pxparser:
+from pathlib import Path
+
+class PxParser:
     BLOCK_SIZE = 8192
     MSG_HEADER_LEN = 3
     MSG_HEAD1 = 0xA3
@@ -33,8 +34,8 @@ class Pxparser:
         "q": ("q", None),
         "Q": ("Q", None),
     }
-    __delim_char = "\t"
-    __null_char = "" 
+    __delim_char = '\t'
+    __null_char = '' 
     __msg_filter = list()
     __msg_ignore = list()
     __msg_id_ignore = list()
@@ -69,9 +70,6 @@ class Pxparser:
     
     def set_namespace(self, namespace):      # Set a custom namespace to print instead of __txt_columns
         self.__namespace = namespace
-
-    def set_delimiter_char(self, csv_delim):  # Set a char to print in between columns
-        self.__delim_char = csv_delim
     
     def set_null_char(self, csv_null):        # Set a char to print if there is no data in the column
         self.__null_char = csv_null
@@ -100,6 +98,7 @@ class Pxparser:
     def set_output_file(self, file_name, file_type):
         if file_type == 'txt' or file_type == 'csv':
             self.__file = open(file_name + '.' + file_type, "w+")
+            self.__delim_char = ',' if file_type == 'csv' else '\t'
         elif file_type == 'xlsx':
             self.__workbook = xlsxwriter.Workbook(file_name + '.' + file_type)
             self.__file = self.__workbook.add_worksheet()
@@ -107,7 +106,6 @@ class Pxparser:
     def __parseCString(self, cstr):
         return str(cstr, 'ascii').split('\0')[0]
 
-    
     def process(self, fn): # Main function
         self.reset()
         file_size = Path(fn).stat().st_size

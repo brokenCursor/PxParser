@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 
 import sys
-from typing import List
 from PxUILayout import PxUILayout
 from PyQt5 import QtCore, QtWidgets
+from PxParser import PxParser
 
 
 class UIController(QtWidgets.QMainWindow, PxUILayout):
@@ -90,7 +90,7 @@ class UIController(QtWidgets.QMainWindow, PxUILayout):
             items_to_export = self.__table_get_all_items()
         files_to_export = [item.text() for item in items_to_export]
         for file in files_to_export:
-            pass
+            file_name = file.sp
         self.progressBar.show()
         self.__table_remove_items(items_to_export)
 

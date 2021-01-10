@@ -1,5 +1,5 @@
 import sys
-from pxparser import Pxparser 
+from PxParser import PxParser 
 
 
 
@@ -27,14 +27,13 @@ def _main():
     constant_clock = True
     custom_namespace = None
     null_char = ""
-    delim_char = "\t"
     time_msg = "GPS_TimeUS"
     data_msg = "MSG_Message"
     msg_ignore = [time_msg, data_msg]
     msg_filter = [('GPS', ['TimeUS', 'Lng', 'Lat', 'Spd']), ('BARO', ['Alt']), ('AHR2', ['Roll', 'Pitch', 'Yaw']), ('MSG', ['Message'])]
-    default_namespace = {'GPS_TimeUS':'GPS_TimeUS', 'GPS_Lng':'GPS_Lng\t', 'GPS_Lat':'GPS_Lat\t', 'GPS_Spd':'GPS_Spd\t', 'BARO_Alt':'BARO_Alt', 'AHR2_Roll':'AHR2_Roll', 'AHR2_Pitch':'AHR2_Pitch', 'AHR2_Yaw':'AHR2_Yaw','MSG_Message':'MSG_Message'}
-    custom_rus_namespace = {'GPS_TimeUS':'Время\t', 'GPS_Lng':'Долгота\t', 'GPS_Lat':'Широта\t', 'GPS_Spd':'Скорость', 'BARO_Alt':'Высота\t', 'AHR2_Roll':'Крен\t', 'AHR2_Pitch':'Тангаж\t', 'AHR2_Yaw':'Рысканье','MSG_Message':'Статус'}
-    custom_eng_namespace = {'GPS_TimeUS':'Time\t', 'GPS_Lng':'Longitude', 'GPS_Lat':'Latitude', 'GPS_Spd':'Speed\t', 'BARO_Alt':'Altitude', 'AHR2_Roll':'Roll\t', 'AHR2_Pitch':'Pitch\t', 'AHR2_Yaw':'Yaw\t','MSG_Message':'Status'}
+    default_namespace = {'GPS_TimeUS':'GPS_TimeUS', 'GPS_Lng':'GPS_Lng', 'GPS_Lat':'GPS_Lat', 'GPS_Spd':'GPS_Spd', 'BARO_Alt':'BARO_Alt', 'AHR2_Roll':'AHR2_Roll', 'AHR2_Pitch':'AHR2_Pitch', 'AHR2_Yaw':'AHR2_Yaw','MSG_Message':'MSG_Message'}
+    custom_rus_namespace = {'GPS_TimeUS':'Время', 'GPS_Lng':'Долгота', 'GPS_Lat':'Широта', 'GPS_Spd':'Скорость', 'BARO_Alt':'Высота', 'AHR2_Roll':'Крен', 'AHR2_Pitch':'Тангаж', 'AHR2_Yaw':'Рысканье','MSG_Message':'Статус'}
+    custom_eng_namespace = {'GPS_TimeUS':'Time', 'GPS_Lng':'Longitude', 'GPS_Lat':'Latitude', 'GPS_Spd':'Speed', 'BARO_Alt':'Altitude', 'AHR2_Roll':'Roll', 'AHR2_Pitch':'Pitch', 'AHR2_Yaw':'Yaw','MSG_Message':'Status'}
 
     opt = None
     for arg in sys.argv[2:]:
@@ -68,15 +67,12 @@ def _main():
                 opt = "f"
 
 
-    if delim_char == "\\t":
-        delim_char = "\t"
-    parser = Pxparser()
-    parser.set_delimiter_char(delim_char)
+    parser = PxParser()
     parser.set_null_char(null_char)
     parser.set_msg_filter(msg_filter)
     parser.set_time_msg(time_msg)
     parser.set_data_msg(data_msg)
-    parser.set_output_file('test', 'xlsx')
+    parser.set_output_file('test', 'csv')
     parser.set_debug_flag(False)
     parser.set_constant_clock_flag(constant_clock)
     parser.set_error_corr_flag(correct_errors)
