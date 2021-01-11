@@ -81,6 +81,8 @@ class UIController(QtWidgets.QMainWindow, PxUILayout):
         return QtWidgets.QFileDialog.getExistingDirectory(self, 'Select directory')
 
     def __export(self):
+        time_msg = "GPS_TimeUS"
+        data_msg = "MSG_Message"
         export_to = self.__get_export_directory()
         export_as = self.__get_selected_file_type()
         selected_items = self.fileTable.selectedItems()
@@ -90,7 +92,12 @@ class UIController(QtWidgets.QMainWindow, PxUILayout):
             items_to_export = self.__table_get_all_items()
         files_to_export = [item.text() for item in items_to_export]
         for file in files_to_export:
-            file_name = file.sp
+            output_file_name = file
+            parser = PxParser()
+            parser.set_time_msg(time_msg)
+            parser.set_data_msg(data_msg)
+            parser.set_msg_ignore([time_msg, data_msg])
+            parser.set_output_file()
         self.progressBar.show()
         self.__table_remove_items(items_to_export)
 

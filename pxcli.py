@@ -72,7 +72,7 @@ def _main():
     parser.set_msg_filter(msg_filter)
     parser.set_time_msg(time_msg)
     parser.set_data_msg(data_msg)
-    parser.set_output_file('test', 'csv')
+    parser.set_output_file('test', 'xlsx')
     parser.set_debug_flag(False)
     parser.set_constant_clock_flag(constant_clock)
     parser.set_error_corr_flag(correct_errors)
