@@ -81,6 +81,8 @@ class UIController(QtWidgets.QMainWindow, PxUILayout):
         return QtWidgets.QFileDialog.getExistingDirectory(self, 'Select directory')
 
     def __export(self):
+        self.statusbar.showMessage('Exporting...')
+        self.__disable_ui()
         time_msg = "GPS_TimeUS"
         data_msg = "MSG_Message"
         export_to = self.__get_export_directory()
@@ -91,15 +93,21 @@ class UIController(QtWidgets.QMainWindow, PxUILayout):
         else:
             items_to_export = self.__table_get_all_items()
         files_to_export = [item.text() for item in items_to_export]
+        self.progressBar.show()
+        progress = 0
         for file in files_to_export:
-            output_file_name = file
+            output_file_name = file.split('/')[-1].split('.')[0]
             parser = PxParser()
             parser.set_time_msg(time_msg)
             parser.set_data_msg(data_msg)
             parser.set_msg_ignore([time_msg, data_msg])
-            parser.set_output_file()
-        self.progressBar.show()
+            parser.set_output_file(export_to + '/' + output_file_name, export_as)
+            parser.process(file)
+            while parser.completed <= 100:
+                progress += (parser.completed / 100 * len(files_to_export)) * 100
+                self.progressBar.setValue(progress)
         self.__table_remove_items(items_to_export)
+        self.__enable_ui()
 
     def __import_file(self):
         file_path = self.__get_file_path()
@@ -114,6 +122,47 @@ class UIController(QtWidgets.QMainWindow, PxUILayout):
             return 'csv'
         elif self.xlsxButton.isChecked():
             return 'xlsx'
+
+    def __disable_ui(self):
+        self.importButton.setEnabled(False)
+        self.exportButton.setEnabled(False)
+        self.deleteButton.setEnabled(False)
+
+        self.txtButton.setEnabled(False)
+        self.xlsxButton.setEnabled(False)
+        self.csvButton.setEnabled(False)
+
+        self.russianButton.setEnabled(False)
+        self.englishButton.setEnabled(False)
+        self.defaultButton.setEnabled(False)
+
+        self.actionExit.setEnabled(False)
+        self.actionImport.setEnabled(False)
+        self.actionExport.setEnabled(False)
+        self.actionDeleteItem.setEnabled(False)
+
+        self.menuFile.setEnabled(False)
+        
+
+    def __enable_ui(self):
+        self.importButton.setEnabled(True)
+        self.exportButton.setEnabled(True)
+        self.deleteButton.setEnabled(True)
+
+        self.txtButton.setEnabled(True)
+        self.xlsxButton.setEnabled(True)
+        self.csvButton.setEnabled(True)
+
+        self.russianButton.setEnabled(True)
+        self.englishButton.setEnabled(True)
+        self.defaultButton.setEnabled(True)
+
+        self.actionExit.setEnabled(True)
+        self.actionImport.setEnabled(True)
+        self.actionExport.setEnabled(True)
+        self.actionDeleteItem.setEnabled(True)
+
+        self.menuFile.setEnabled(True)       
 
 
 def main():
