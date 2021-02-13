@@ -85,29 +85,35 @@ class UIController(QtWidgets.QMainWindow, PxUILayout):
         self.__disable_ui()
         time_msg = "GPS_TimeUS"
         data_msg = "MSG_Message"
-        export_to = self.__get_export_directory()
-        export_as = self.__get_selected_file_type()
-        selected_items = self.fileTable.selectedItems()
-        if selected_items:
-            items_to_export = selected_items
-        else:
-            items_to_export = self.__table_get_all_items()
-        files_to_export = [item.text() for item in items_to_export]
-        self.progressBar.show()
-        progress = 0
-        for file in files_to_export:
-            output_file_name = file.split('/')[-1].split('.')[0]
-            parser = PxParser()
-            parser.set_time_msg(time_msg)
-            parser.set_data_msg(data_msg)
-            parser.set_msg_ignore([time_msg, data_msg])
-            parser.set_output_file(export_to + '/' + output_file_name, export_as)
-            parser.process(file)
-            while parser.completed <= 100:
-                progress += (parser.completed / 100 * len(files_to_export)) * 100
-                self.progressBar.setValue(progress)
-        self.__table_remove_items(items_to_export)
-        self.__enable_ui()
+        try:
+            export_to = self.__get_export_directory()
+            export_as = self.__get_selected_file_type()
+            selected_items = self.fileTable.selectedItems()
+            if selected_items:
+                items_to_export = selected_items
+            else:
+                items_to_export = self.__table_get_all_items()
+            files_to_export = [item.text() for item in items_to_export]
+            self.progressBar.show()
+            progress = 0
+            for file in files_to_export:
+                output_file_name = file.split('/')[-1].split('.')[0]
+                parser = PxParser()
+                parser.set_time_msg(time_msg)
+                parser.set_data_msg(data_msg)
+                parser.set_msg_ignore([time_msg, data_msg])
+                parser.set_output_file(export_to + '/' + output_file_name, export_as)
+                parser.process(file)
+                while parser.completed < 100.0:
+                    print(parser.completed)
+                self.__table_remove_items(items_to_export)
+        except PermissionError:
+            pass
+        finally:
+            self.__enable_ui()
+
+    def __export_thread(self):
+        pass
 
     def __import_file(self):
         file_path = self.__get_file_path()

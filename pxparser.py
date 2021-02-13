@@ -100,7 +100,7 @@ class PxParser:
             self.__file = open(file_name + '.' + file_type, "w+")
             self.__delim_char = ',' if file_type == 'csv' else '\t'
         elif file_type == 'xlsx':
-            self.__workbook = xlsxwriter.Workbook(file_name + '.' + file_type)
+            self.__workbook = xlsxwriter.Workbook(file_name + '.' + file_type, {'nan_inf_to_errors': True})
             self.__file = self.__workbook.add_worksheet()
 
     def __parseCString(self, cstr):
@@ -238,7 +238,7 @@ class PxParser:
                                     curr_data[i] = str(float(curr_data[i]) - (float(curr_data[i]) * to_round_time)) # Convert string to float, substract (curr_data at id i * to_round_time) from curr_data, convert everything back to string and put into curr_data at id i
                             curr_data[self.__time_msg_id] = str(self.msg_count * 100) # Calculate current time by multiplier amount of messages by clock time (100 ms)
                             self.__printData(curr_data)
-                            self.msg_count += 1
+#                            self.msg_count += 1
                         tmp = curr_data[:] # Create a temporary data list
                         for id in range(len(curr_data)): # Interpolate data 
                             if id in self.__msg_id_ignore or self.__next_data[id] == curr_data[id]: # If message in ignore list or equal to __next_data
@@ -249,11 +249,11 @@ class PxParser:
                                 tmp[id] = str(float(curr_data[id]) - (((float(curr_data[id]) - float(self.__next_data[id])) / extra_msg_count) * count)) # Substract extrapolation
                         tmp[self.__time_msg_id] = str(self.msg_count * 100) # Calculate current time by multiplying amount of messages by clock time (100 ms)
                         self.__printData(tmp)  # Print data              
-                        self.msg_count += 1 # Add extra message
+#                        self.msg_count += 1 # Add extra message
                 else: # If __prev_data empty
                     curr_data[self.__time_msg_id] = str(self.msg_count * 100) # Calculate current time by multiplying amount of messages by clock time (100 ms)
                     self.__printData(curr_data) # Print data
-                    self.msg_count += 1
+#                    self.msg_count += 1
                 self.__prev_data = prev_data[:] # Update __prev_data from dedicated buffer
         else:
            self.__printData(data)
@@ -327,4 +327,5 @@ class PxParser:
                     self.__file.write(self.msg_count + 1, data.index(d), d)
         else:
             print(self.__delim_char.join(data))
+        self.msg_count += 1
        

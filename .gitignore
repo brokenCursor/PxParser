@@ -4,4 +4,5 @@
 /example_logs/fake*
 /__pycache__/*
 test.xlsx
+PxUI_mainWindow*
 
