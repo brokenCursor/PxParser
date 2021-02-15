@@ -1,9 +1,14 @@
-from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5 import QtCore, QtWidgets
+
+"""
+Mostly generated in QtDesigner. Looks bad but works
+"""
+
 
 class PxUILayout(object):
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
-        MainWindow.resize(755, 330)
+        MainWindow.resize(755, 350)
         sizePolicy = QtWidgets.QSizePolicy(
             QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Preferred)
         sizePolicy.setHorizontalStretch(0)
@@ -11,12 +16,12 @@ class PxUILayout(object):
         sizePolicy.setHeightForWidth(
             MainWindow.sizePolicy().hasHeightForWidth())
         MainWindow.setSizePolicy(sizePolicy)
-        MainWindow.setMinimumSize(QtCore.QSize(755, 330))
-        MainWindow.setMaximumSize(QtCore.QSize(755, 330))
+        MainWindow.setMinimumSize(QtCore.QSize(755, 350))
+        MainWindow.setMaximumSize(QtCore.QSize(755, 350))
         self.centralwidget = QtWidgets.QWidget(MainWindow)
         self.centralwidget.setObjectName("centralwidget")
         self.horizontalLayoutWidget = QtWidgets.QWidget(self.centralwidget)
-        self.horizontalLayoutWidget.setGeometry(QtCore.QRect(10, 230, 250, 40))
+        self.horizontalLayoutWidget.setGeometry(QtCore.QRect(10, 260, 250, 40))
         self.horizontalLayoutWidget.setObjectName("horizontalLayoutWidget")
         self.buttonsLayout = QtWidgets.QHBoxLayout(self.horizontalLayoutWidget)
         self.buttonsLayout.setContentsMargins(0, 0, 0, 0)
@@ -31,7 +36,7 @@ class PxUILayout(object):
         self.importButton.setObjectName("deleteButton")
         self.buttonsLayout.addWidget(self.deleteButton)
         self.fileTable = QtWidgets.QTableWidget(self.centralwidget)
-        self.fileTable.setGeometry(QtCore.QRect(0, 1, 541, 221))
+        self.fileTable.setGeometry(QtCore.QRect(0, 1, 541, 251))
         self.fileTable.setObjectName("fileTable")
         self.verticalLayoutWidget = QtWidgets.QWidget(self.centralwidget)
         self.verticalLayoutWidget.setGeometry(QtCore.QRect(550, 0, 201, 80))
@@ -92,6 +97,31 @@ class PxUILayout(object):
             self.verticalLayoutWidget_2)
         self.russianButton.setObjectName("russianButton")
         self.namespaceLayout.addWidget(self.russianButton)
+        self.verticalLayoutWidget_3 = QtWidgets.QWidget(self.centralwidget)
+        self.verticalLayoutWidget_3.setGeometry(
+            QtCore.QRect(550, 210, 201, 60))
+        self.interpolLayout = QtWidgets.QVBoxLayout(
+            self.verticalLayoutWidget_3)
+        self.interpolLayout.setContentsMargins(0, 0, 0, 0)
+        self.interpolLayout.setObjectName("interpolLayout")
+        self.InterpolationLabel = QtWidgets.QLabel(self.verticalLayoutWidget_3)
+        self.InterpolationLabel.setAlignment(QtCore.Qt.AlignCenter)
+        self.InterpolationLabel.setObjectName("InterpolationLabel")
+        self.interpolLayout.addWidget(self.InterpolationLabel)
+        self.line_3 = QtWidgets.QFrame(self.verticalLayoutWidget_3)
+        self.line_3.setFrameShape(QtWidgets.QFrame.HLine)
+        self.line_3.setFrameShadow(QtWidgets.QFrame.Sunken)
+        self.line_3.setObjectName("line_3")
+        self.interpolLayout.addWidget(self.line_3)
+        self.OnButton = QtWidgets.QRadioButton(
+            self.verticalLayoutWidget_3)
+        self.OnButton.setObjectName("OnButton")
+        self.interpolLayout.addWidget(self.OnButton)
+        self.OffButton = QtWidgets.QRadioButton(
+            self.verticalLayoutWidget_3)
+        self.OffButton.setChecked(True)
+        self.OffButton.setObjectName("OffButton")
+        self.interpolLayout.addWidget(self.OffButton)
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QtWidgets.QMenuBar(MainWindow)
         self.menubar.setGeometry(QtCore.QRect(0, 0, 755, 32))
@@ -113,9 +143,12 @@ class PxUILayout(object):
         self.actionExit.setObjectName("actionExit")
         self.actionDeleteItem = QtWidgets.QAction(MainWindow)
         self.actionExit.setObjectName("actionDeleteItem")
+        self.actionTranslate = QtWidgets.QAction(MainWindow)
         self.menuFile.addAction(self.actionImport)
         self.menuFile.addAction(self.actionExport)
         self.menuFile.addAction(self.actionDeleteItem)
+        self.menuFile.addSeparator()
+        self.menuFile.addAction(self.ac)
         self.menuFile.addSeparator()
         self.menuFile.addAction(self.actionExit)
         self.menubar.addAction(self.menuFile.menuAction())
@@ -144,3 +177,7 @@ class PxUILayout(object):
         self.actionExport.setText(_translate("MainWindow", "Export"))
         self.actionDeleteItem.setText(_translate("MainWindow", "Delete item"))
         self.actionExit.setText(_translate("MainWindow", "Exit"))
+        self.InterpolationLabel.setText(
+            _translate("MainWindow", "Interpolation"))
+        self.OnButton.setText(_translate("MainWindow", "On"))
+        self.OffButton.setText(_translate("MainWindow", "Off"))
