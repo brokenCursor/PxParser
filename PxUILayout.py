@@ -1,4 +1,4 @@
-from PyQt5 import QtCore, QtWidgets
+from PyQt5 import QtCore, QtGui, QtWidgets
 
 """
 Mostly generated in QtDesigner. Looks bad but works
@@ -9,6 +9,7 @@ class PxUILayout(object):
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
         MainWindow.resize(755, 350)
+        MainWindow.setWindowIcon(QtGui.QIcon("./assets/logo16x16.png"))
         sizePolicy = QtWidgets.QSizePolicy(
             QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Preferred)
         sizePolicy.setHorizontalStretch(0)
@@ -148,7 +149,7 @@ class PxUILayout(object):
         self.menuFile.addAction(self.actionExport)
         self.menuFile.addAction(self.actionDeleteItem)
         self.menuFile.addSeparator()
-        self.menuFile.addAction(self.ac)
+#       self.menuFile.addAction(self.ac)
         self.menuFile.addSeparator()
         self.menuFile.addAction(self.actionExit)
         self.menubar.addAction(self.menuFile.menuAction())

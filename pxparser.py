@@ -50,7 +50,8 @@ class PxParser:
     __prev_data = list()               
     __next_data = list()
     __constant_clock = False
-    __workbook = None                   
+    __workbook = None
+    completed = 0                   
     
     
     def reset(self):                # Reset variables default

@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 
-from typing import List
 from PxExportWorker import PxExportWorker
 import sys
 import time
@@ -14,6 +13,12 @@ class UIController(QtWidgets.QMainWindow, PxUILayout):
     __file_list = set()
     progess = 0  # Exporting progress
     __threads = []
+    ru_namespace = {'GPS_TimeUS': 'Время', 'GPS_Lng': 'Долгота', 'GPS_Lat': 'Широта', 'GPS_Spd': 'Скорость',
+                    'BARO_Alt': 'Высота', 'AHR2_Roll': 'Крен', 'AHR2_Pitch': 'Тангаж', 'AHR2_Yaw': 'Рысканье', 'MSG_Message': 'Статус'}
+    en_namespace = {'GPS_TimeUS': 'Time', 'GPS_Lng': 'Longitude', 'GPS_Lat': 'Latitude', 'GPS_Spd': 'Speed',
+                    'BARO_Alt': 'Altitude', 'AHR2_Roll': 'Roll', 'AHR2_Pitch': 'Pitch', 'AHR2_Yaw': 'Yaw', 'MSG_Message': 'Status'}
+    def_namespace = {'GPS_TimeUS': 'GPS_TimeUS', 'GPS_Lng': 'GPS_Lng', 'GPS_Lat': 'GPS_Lat', 'GPS_Spd': 'GPS_Spd',
+                     'BARO_Alt': 'BARO_Alt', 'AHR2_Roll': 'AHR2_Roll', 'AHR2_Pitch': 'AHR2_Pitch', 'AHR2_Yaw': 'AHR2_Yaw', 'MSG_Message': 'MSG_Message'}
 
     def __init__(self):  # Initialize UI
         super().__init__()
@@ -89,17 +94,13 @@ class UIController(QtWidgets.QMainWindow, PxUILayout):
 
     # Update progress bar by thread_progress / number_of_threads
     def updateProgressbar(self, progress):
-        self.progess += progress / len(self.__file_list)
+        print(progress)
+        self.progess += float(progress) / len(self.__file_list)
         self.progressBar.setValue(self.progess)
 
     def __createThread(self, worker):  # Create worker thread
-        thread = QThread()
-        worker.moveToThread(thread)
-        worker.progress.connect(self.updateProgressbar)
-        thread.started.connect(worker.run)
-        thread.finished.connect(thread.deleteLater)
-        worker.finished.connect(thread.terminate)
-        worker.finished.connect(worker.deleteLater)
+        thread = worker
+        worker.finished.connect(worker.stop)
         return thread
 
     def __export(self):  # Export files
@@ -107,31 +108,41 @@ class UIController(QtWidgets.QMainWindow, PxUILayout):
         self.__disable_ui()
         time_msg = "GPS_TimeUS"
         data_msg = "MSG_Message"
+        interpolation = self.__get_interpolation()
+        namespace = self.__get_namespace()
+        export_as = self.__get_selected_file_type()
+        selected_items = self.fileTable.selectedItems()
+        items_to_export = selected_items if selected_items else self.__table_get_all_items()
+        self.progess = 0
+        self.progressBar.setValue(self.progess)
+        self.progressBar.show()
+        self.__threads.clear()
         try:
             export_to = self.__get_export_directory()
-            export_as = self.__get_selected_file_type()
-            selected_items = self.fileTable.selectedItems()
-            items_to_export = selected_items if selected_items else self.__table_get_all_items()
-            self.progess = 0
-            self.progressBar.setValue(0)
-            self.progressBar.show()
-            self.__threads.clear()
-            for item in items_to_export:
-                file = item.text()
-                output_file_name = export_to + '/' +\
-                    file.split('/')[-1].split('.')[0]
-                worker = PxExportWorker(
-                    file, output_file_name, export_as, time_msg, data_msg,
-                    msg_ignore=[time_msg, data_msg])
-                thread = self.__createThread(worker)
-                thread.start()
-                self.__threads.append(thread)
-                print('file done')
-            self.__table_remove_items(items_to_export)
         except PermissionError:
-            self.statusbar('Export aborted')
-        finally:
-            self.__enable_ui()
+            self.statusbar.showMessage('Export aborted: PermissionError')
+            return
+        for item in items_to_export:
+            file = item.text()
+            output_file_name = export_to + '/' +\
+                file.split('/')[-1].split('.')[0]
+            worker = PxExportWorker(
+                file, output_file_name, namespace, export_as, time_msg,
+                data_msg, [time_msg, data_msg], interpolation, )
+            thread = self.__createThread(worker)
+            thread.start()
+            self.__threads.append(thread)
+            prev_progress = thread.parser.completed
+            while thread.isRunning():
+                curr_progress = thread.parser.completed
+                self.updateProgressbar(curr_progress - prev_progress)
+                prev_progress = curr_progress
+            self.updateProgressbar(10)
+            time.sleep(1)
+            self.progressBar.hide()
+        self.__table_remove_items(items_to_export)
+        self.statusbar.showMessage("Export done")
+        self.__enable_ui()
 
     def __import_file(self):  # Import files
         file_path = self.__get_file_path()
@@ -146,6 +157,20 @@ class UIController(QtWidgets.QMainWindow, PxUILayout):
             return 'csv'
         elif self.xlsxButton.isChecked():
             return 'xlsx'
+
+    def __get_interpolation(self):
+        if self.OnButton.isChecked():
+            return True
+        elif self.OffButton.isChecked():
+            return False
+
+    def __get_namespace(self):
+        if self.defaultButton.isChecked():
+            return self.def_namespace
+        elif self.russianButton.isChecked():
+            return self.ru_namespace
+        elif self.englishButton.isChecked():
+            return self.en_namespace
 
     def __disable_ui(self):  # Disable almost every element of the UI
         self.importButton.setEnabled(False)
@@ -164,6 +189,9 @@ class UIController(QtWidgets.QMainWindow, PxUILayout):
         self.actionImport.setEnabled(False)
         self.actionExport.setEnabled(False)
         self.actionDeleteItem.setEnabled(False)
+
+        self.OnButton.setEnabled(False)
+        self.OffButton.setEnabled(False)
 
         self.menuFile.setEnabled(False)
 
@@ -184,6 +212,9 @@ class UIController(QtWidgets.QMainWindow, PxUILayout):
         self.actionImport.setEnabled(True)
         self.actionExport.setEnabled(True)
         self.actionDeleteItem.setEnabled(True)
+
+        self.OnButton.setEnabled(True)
+        self.OffButton.setEnabled(True)
 
         self.menuFile.setEnabled(True)
 
