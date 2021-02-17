@@ -13,6 +13,9 @@ class UIController(QtWidgets.QMainWindow, PxUILayout):
     __file_list = set()
     progess = 0  # Exporting progress
     __threads = []
+
+    filter = [('GPS', ['TimeUS', 'Lng', 'Lat', 'Spd']), ('BARO', ['Alt']),
+              ('AHR2', ['Roll', 'Pitch', 'Yaw']), ('MSG', ['Message'])]
     ru_namespace = {'GPS_TimeUS': 'Время', 'GPS_Lng': 'Долгота', 'GPS_Lat': 'Широта', 'GPS_Spd': 'Скорость',
                     'BARO_Alt': 'Высота', 'AHR2_Roll': 'Крен', 'AHR2_Pitch': 'Тангаж', 'AHR2_Yaw': 'Рысканье', 'MSG_Message': 'Статус'}
     en_namespace = {'GPS_TimeUS': 'Time', 'GPS_Lng': 'Longitude', 'GPS_Lat': 'Latitude', 'GPS_Spd': 'Speed',
@@ -94,7 +97,6 @@ class UIController(QtWidgets.QMainWindow, PxUILayout):
 
     # Update progress bar by thread_progress / number_of_threads
     def updateProgressbar(self, progress):
-        print(progress)
         self.progess += float(progress) / len(self.__file_list)
         self.progressBar.setValue(self.progess)
 
@@ -127,7 +129,7 @@ class UIController(QtWidgets.QMainWindow, PxUILayout):
             output_file_name = export_to + '/' +\
                 file.split('/')[-1].split('.')[0]
             worker = PxExportWorker(
-                file, output_file_name, namespace, export_as, time_msg,
+                file, output_file_name, namespace, self.filter, export_as, time_msg,
                 data_msg, [time_msg, data_msg], interpolation, )
             thread = self.__createThread(worker)
             thread.start()

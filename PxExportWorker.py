@@ -12,7 +12,7 @@ class PxExportWorker(QThread):
     parser = PxParser()
     target = ''
 
-    def __init__(self, target, filename, namespace, export_as='txt', time_msg="GPS_TimeUS",
+    def __init__(self, target, filename, namespace=dict(), filter=[], export_as='txt', time_msg="GPS_TimeUS",
                  data_msg="MSG_Message", msg_ignore=[], use_interpolation=False) -> None:
         super(self.__class__, self).__init__()
         self.parser.set_namespace(namespace)
@@ -21,6 +21,7 @@ class PxExportWorker(QThread):
         self.parser.set_msg_ignore(msg_ignore)
         self.parser.set_output_file(filename, export_as)
         self.parser.set_constant_clock_flag(use_interpolation)
+        self.parser.set_msg_filter(filter)
         self.target = target
 
     def run(self):
