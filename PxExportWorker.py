@@ -20,7 +20,7 @@ class PxExportWorker(QThread):
         self.parser.set_data_msg(data_msg)
         self.parser.set_msg_ignore(msg_ignore)
         self.parser.set_output_file(filename, export_as)
-        self.parser.set_constant_clock_flag(use_interpolation)
+        if use_interpolation: self.parser.enable_interpolation()
         self.parser.set_msg_filter(filter)
         self.target = target
 
@@ -30,4 +30,6 @@ class PxExportWorker(QThread):
 
     def stop(self):
         self.threadactive = False
-        self.wait()
+        self.terminate()
+        print('terminated')
+
