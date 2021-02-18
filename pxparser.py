@@ -235,13 +235,13 @@ class PxParser:
             if not val:  # If string is empty
                 val = self.__null_char  # Put null char in
             else:  # If there is some data
-                if "." in str(val):
+                if str(val).isnumeric():
+                    val = int(val)
+                else:
                     try:
                         val = float(val)
-                    except TypeError:
+                    except ValueError:
                         val = str(val)
-                else:
-                    val = int(val)
 
             data.append(val)
 
@@ -263,38 +263,30 @@ class PxParser:
                         if count == 0 and to_round_time > 0:  # If it's first extra message and time is not a round number
                             # Multiply every string in list by to_round_time multiplier
                             for i in range(len(curr_data)):
-                                # If time message is being processed or curr_data at id [i] and __prev_data at id[i] is equal
                                 if type(curr_data[i]) == "str" or i in self.__msg_id_ignore or curr_data[i] == self.__prev_data[i]:
                                     continue
-                                if self.__next_data[i] > curr_data[i]:
+                                elif self.__next_data[i] > curr_data[i]:
                                     curr_data[i] += curr_data[i] * \
                                         to_round_time
                                 else:
                                     curr_data[i] -= curr_data[i] * \
                                         to_round_time
-                            # Calculate current time
                             curr_data[self.__time_msg_id] = self.msg_count * 100
                             self.__printData(curr_data)
                         tmp = curr_data[:]  # Create a temporary data list
                         for id in range(len(curr_data)):  # Interpolate data
-                            # If message in ignore list or equal to __next_data
-                            if id in self.__msg_id_ignore or self.__next_data[id] == curr_data[id]:
+                            if type(tmp[id]) == "str" or id in self.__msg_id_ignore or self.__next_data[id] == curr_data[id]:
                                 continue
-                            # If curr_data[id] less than __next_data
                             elif self.__next_data[id] > curr_data[id]:
-                                tmp[id] = str(float(curr_data[id]) + (((float(self.__next_data[id]) - float(
-                                    curr_data[id])) / extra_msg_count) * count))  # Add interpolation
-                            else:  # If curr_data[id] greater than __next_data
-                                tmp[id] = str(float(curr_data[id]) - (((float(curr_data[id]) - float(
-                                    self.__next_data[id])) / extra_msg_count) * count))  # Substract extrapolation
-                        # Calculate current time by multiplying amount of messages by clock time (100 ms)
-                        tmp[self.__time_msg_id] = str(self.msg_count * 100)
+                                tmp[id] = curr_data[id] + (((self.__next_data[id] - curr_data[id]) / extra_msg_count) * count)
+                            else:
+                                tmp[id] = curr_data[id] - (((curr_data[id] - self.__next_data[id]) / extra_msg_count) * count)
+                        tmp[self.__time_msg_id] = self.msg_count * 100
                         self.__printData(tmp)  # Print data
                 else:  # If __prev_data empty
                     # Calculate current time by multiplying amount of messages by clock time (100 ms)
-                    curr_data[self.__time_msg_id] = str(self.msg_count * 100)
+                    curr_data[self.__time_msg_id] = 0
                     self.__printData(curr_data)  # Print data
-                # Update __prev_data from dedicated buffer
                 self.__prev_data = prev_data[:]
         else:
             self.__printData(data)
@@ -358,6 +350,8 @@ class PxParser:
 
     def __printData(self, data):
         for id in range(len(data)):
+            if type(data[id]) != "str":
+                continue
             if id == self.__status_msg_id:
                 data[self.__status_msg_id] = data[self.__status_msg_id].strip(
                     "'").lstrip("b'").strip('\\x00')
@@ -368,7 +362,7 @@ class PxParser:
                 data[id] = data[id][:8]  # Trim to 8 characters
 
         if type(self.__file) is TextIOWrapper:
-            print(self.__delim_char.join(data), file=self.__file)
+            print(self.__delim_char.join(list(map(str, data))), file=self.__file)
         elif type(self.__file) is Worksheet:
             for d in data:
                 try:

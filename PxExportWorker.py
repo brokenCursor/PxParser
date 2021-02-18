@@ -1,5 +1,5 @@
 from PxParser import PxParser
-from PyQt5.QtCore import QObject, QThread, pyqtSignal
+from PyQt5.QtCore import QThread, pyqtSignal
 
 """
 Export class for threaded exportting
