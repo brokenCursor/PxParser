@@ -5,7 +5,6 @@ import sys
 import time
 from PxUILayout import PxUILayout
 from PyQt5 import QtCore, QtWidgets
-from PyQt5.QtCore import QThread
 
 
 class UIController(QtWidgets.QMainWindow, PxUILayout):
@@ -97,7 +96,7 @@ class UIController(QtWidgets.QMainWindow, PxUILayout):
 
     # Update progress bar by thread_progress / number_of_threads
     def updateProgressbar(self, progress):
-        self.progess += float(progress) / len(self.__file_list)
+        self.progess += int(progress) / len(self.__file_list)
         self.progressBar.setValue(self.progess)
 
     def __createThread(self, worker):  # Create worker thread

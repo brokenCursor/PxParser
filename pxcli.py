@@ -1,12 +1,13 @@
 import sys
-from PxParser import PxParser 
+from PxParser import PxParser
 
-
+""" Legacy cli interface. For gebug purposes. Do not use! """
 
 
 def _main():
     if len(sys.argv) < 2:
-        print("Usage: python px4parser.py <log.bin> [-v] [-e] [-d delimiter] [-def] [-eng] [-rus] [-c] [-m MSG[.field1,field2,...]] [-t TIME_MSG_NAME]\n")
+        print(
+            "Usage: python px4parser.py <log.bin> [-v] [-e] [-d delimiter] [-def] [-eng] [-rus] [-c] [-m MSG[.field1,field2,...]] [-t TIME_MSG_NAME]\n")
         print("\t-v\tUse plain debug output instead of TXT.\n")
         print("\t-e\tRecover from errors.\n")
         print("\t-d\tUse \"delimiter\" in output. Default is TAB.\n")
@@ -30,10 +31,14 @@ def _main():
     time_msg = "GPS_TimeUS"
     data_msg = "MSG_Message"
     msg_ignore = [time_msg, data_msg]
-    msg_filter = [('GPS', ['TimeUS', 'Lng', 'Lat', 'Spd']), ('BARO', ['Alt']), ('AHR2', ['Roll', 'Pitch', 'Yaw']), ('MSG', ['Message'])]
-    default_namespace = {'GPS_TimeUS':'GPS_TimeUS', 'GPS_Lng':'GPS_Lng', 'GPS_Lat':'GPS_Lat', 'GPS_Spd':'GPS_Spd', 'BARO_Alt':'BARO_Alt', 'AHR2_Roll':'AHR2_Roll', 'AHR2_Pitch':'AHR2_Pitch', 'AHR2_Yaw':'AHR2_Yaw','MSG_Message':'MSG_Message'}
-    custom_rus_namespace = {'GPS_TimeUS':'Время', 'GPS_Lng':'Долгота', 'GPS_Lat':'Широта', 'GPS_Spd':'Скорость', 'BARO_Alt':'Высота', 'AHR2_Roll':'Крен', 'AHR2_Pitch':'Тангаж', 'AHR2_Yaw':'Рысканье','MSG_Message':'Статус'}
-    custom_eng_namespace = {'GPS_TimeUS':'Time', 'GPS_Lng':'Longitude', 'GPS_Lat':'Latitude', 'GPS_Spd':'Speed', 'BARO_Alt':'Altitude', 'AHR2_Roll':'Roll', 'AHR2_Pitch':'Pitch', 'AHR2_Yaw':'Yaw','MSG_Message':'Status'}
+    msg_filter = [('GPS', ['TimeUS', 'Lng', 'Lat', 'Spd']), ('BARO', [
+        'Alt']), ('AHR2', ['Roll', 'Pitch', 'Yaw']), ('MSG', ['Message'])]
+    default_namespace = {'GPS_TimeUS': 'GPS_TimeUS', 'GPS_Lng': 'GPS_Lng', 'GPS_Lat': 'GPS_Lat', 'GPS_Spd': 'GPS_Spd',
+                         'BARO_Alt': 'BARO_Alt', 'AHR2_Roll': 'AHR2_Roll', 'AHR2_Pitch': 'AHR2_Pitch', 'AHR2_Yaw': 'AHR2_Yaw', 'MSG_Message': 'MSG_Message'}
+    custom_rus_namespace = {'GPS_TimeUS': 'Время', 'GPS_Lng': 'Долгота', 'GPS_Lat': 'Широта', 'GPS_Spd': 'Скорость',
+                            'BARO_Alt': 'Высота', 'AHR2_Roll': 'Крен', 'AHR2_Pitch': 'Тангаж', 'AHR2_Yaw': 'Рысканье', 'MSG_Message': 'Статус'}
+    custom_eng_namespace = {'GPS_TimeUS': 'Time', 'GPS_Lng': 'Longitude', 'GPS_Lat': 'Latitude', 'GPS_Spd': 'Speed',
+                            'BARO_Alt': 'Altitude', 'AHR2_Roll': 'Roll', 'AHR2_Pitch': 'Pitch', 'AHR2_Yaw': 'Yaw', 'MSG_Message': 'Status'}
 
     opt = None
     for arg in sys.argv[2:]:
@@ -43,9 +48,9 @@ def _main():
             elif opt == "t":
                 time_msg = arg
             elif opt == "n":
-                custom_namespace = arg 
+                custom_namespace = arg
             elif opt == "f":
-            	file_name = arg
+                file_name = arg
         else:
             if arg == "-v":
                 debug_out = True
@@ -66,7 +71,6 @@ def _main():
             elif arg == "-f":
                 opt = "f"
 
-
     parser = PxParser()
     parser.set_null_char(null_char)
     parser.set_msg_filter(msg_filter)
@@ -84,7 +88,7 @@ def _main():
         parser.set_namespace(custom_eng_namespace)
     parser.set_msg_ignore(msg_ignore)
     parser.process(fn)
-    
+
 
 if __name__ == "__main__":
     _main()

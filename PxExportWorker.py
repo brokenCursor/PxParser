@@ -1,12 +1,12 @@
 from PxParser import PxParser
 from PyQt5.QtCore import QThread, pyqtSignal
 
-"""
-Export class for threaded exportting
-"""
-
 
 class PxExportWorker(QThread):
+    """
+    Class for threaded exportting
+    """
+
     finished = pyqtSignal()
 
     parser = PxParser()
@@ -20,7 +20,8 @@ class PxExportWorker(QThread):
         self.parser.set_data_msg(data_msg)
         self.parser.set_msg_ignore(msg_ignore)
         self.parser.set_output_file(filename, export_as)
-        if use_interpolation: self.parser.enable_interpolation()
+        if use_interpolation:
+            self.parser.enable_interpolation()
         self.parser.set_msg_filter(filter)
         self.target = target
 
@@ -31,5 +32,3 @@ class PxExportWorker(QThread):
     def stop(self):
         self.threadactive = False
         self.terminate()
-        print('terminated')
-

@@ -227,19 +227,17 @@ class PxParser:
     def __processData(self):  # Process raw data
         """ Convert to correct type, apply interpolation if needed """
         data = []
-        for full_label in self.__txt_columns:  # Fill in data accordigly to __txt_columns
+        for full_label in self.__txt_columns:  # Fill data from __txt_columns
             # Get single string from data dictionary
             val = self.__txt_data[full_label]
-            if not val:  # If string is empty
+            if val == None:  # If string is empty
+                print("set null")
                 val = self.__null_char  # Put null char in
             else:  # If there is some data
-                if str(val).isnumeric():
+                if type(val) is int:
                     val = int(val)
-                elif str(val).replace('.', '').isnumeric():
-                    try:
-                        val = float(val)
-                    except ValueError:
-                        val = str(val)
+                elif type(val) is float:
+                    val = float(val)
                 else:
                     val = str(val)
 
@@ -248,7 +246,6 @@ class PxParser:
         if self.__interpolation:
             if not self.__next_data:
                 self.__next_data = data[:]
-                return
             else:  # If __next_data contains something
                 curr_data = self.__next_data[:]
                 prev_data = curr_data[:]
@@ -260,17 +257,20 @@ class PxParser:
                     to_round_time = (100 - (time_diff % 100)) * 0.0001
                     extra_msg_count = time_diff // 100
                     for count in range(extra_msg_count):
-                        if count == 0 and to_round_time > 0:  # If it's first extra message and time is not a round number
+                        if count == 0 and round(to_round_time, 2) > 0:  # If it's first extra message and time is not a round number
                             # Multiply every string in list by to_round_time multiplier
                             for i in range(len(curr_data)):
-                                if type(curr_data[i]) is str or i in self.__msg_id_ignore or curr_data[i] == self.__prev_data[i]:
-                                    continue
-                                elif self.__next_data[i] > curr_data[i]:
-                                    curr_data[i] += curr_data[i] * \
-                                        to_round_time
-                                else:
-                                    curr_data[i] -= curr_data[i] * \
-                                        to_round_time
+                                try:
+                                    if type(curr_data[i]) is str or i in self.__msg_id_ignore or curr_data[i] == self.__prev_data[i]:
+                                        continue
+                                    elif self.__next_data[i] > curr_data[i]:
+                                        curr_data[i] += curr_data[i] * \
+                                            to_round_time
+                                    else:
+                                        curr_data[i] -= curr_data[i] * \
+                                            to_round_time
+                                except TypeError:
+                                    print(curr_data[i], self.__next_data[i] if self.__next_data[i] else 'null')
                             curr_data[self.__time_msg_id] = self.msg_count * 100
                             self.__printData(curr_data)
                         tmp = curr_data[:]  # Create a temporary data list
@@ -353,19 +353,15 @@ class PxParser:
     def __printData(self, data):
         """ Write data to file/output """
 
-        data = list(map(lambda val: val.strip("'").strip(
-            "b'").strip("\\x00") if type(data) is str and "\\x00" in data else val, data))  # Clear null termination if needed
+        data = list(map(lambda val: val.lstrip("b'").rstrip(
+            "'").rstrip("\\x00") if type(data) is str and "\\x00" in data else val, data))  # Clear null termination if needed
 
         if type(self.__file) is TextIOWrapper:  # Convert to str, join with delim and write to file
             print(self.__delim_char.join(list(map(str, data))), file=self.__file)
 
         elif type(self.__file) is Worksheet:
             for d in data:
-                try:  # Try converting to float
-                    self.__file.write(self.msg_count + 1,
-                                      data.index(d), float(d))
-                except ValueError:  # If failed, convert to string
-                    self.__file.write(self.msg_count + 1, data.index(d), d)
-        else:  # If no output file set, write to stdout
+                self.__file.write(self.msg_count + 1, data.index(d), d)
+        else:  # If no output file is set, write to stdout
             print(self.__delim_char.join(data))
         self.msg_count += 1
