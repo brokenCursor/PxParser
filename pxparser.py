@@ -57,7 +57,6 @@ class PxParser:
     __txt_updated = False
     __time_msg_id = 0
     __status_msg = ""
-    __status_msg_id = 0
     __debug_out = False
     __correct_errors = False
     __interpolation = False
@@ -111,7 +110,8 @@ class PxParser:
             self.__file = self.__workbook.add_worksheet()
 
     # Convert Cstring to string object
-    def __parseCString(self, cstr):
+    def __to_utf8(self, cstr):
+        """ Convert ASCII to UTF-8 """
         return str(cstr, 'ascii').split('\0')[0]
 
     def process(self, fn):  # Main function
@@ -168,21 +168,19 @@ class PxParser:
         if type(self.__file) is Worksheet:  # If writing to .xlsx, close file
             self.__workbook.close()
 
-    # Get an amout of bytes left
-
     def __bytesLeft(self):
+        """ Get amout of bytes left in file being processed """
         return len(self.__buffer) - self.__pointer
 
-    # Process filter
-
     def __filterMsg(self, msg_name):
+        """ Create message filter """
         show_fields = "*"
         if self.__msg_filter_map:
             show_fields = self.__msg_filter_map.get(msg_name)
         return show_fields
 
-    # Initialize output file
     def __initOutput(self):
+        """ Create output file, write column headers """
         if not self.__msg_filter:  # If filter is empty, enable all messages
             for msg_name in self.__msg_names:
                 self.__msg_filter.append((msg_name, "*"))
@@ -226,8 +224,8 @@ class PxParser:
         else:
             print(self.__delim_char.join(headers))
 
-
     def __processData(self):  # Process raw data
+        """ Convert to correct type, apply interpolation if needed """
         data = []
         for full_label in self.__txt_columns:  # Fill in data accordigly to __txt_columns
             # Get single string from data dictionary
@@ -237,11 +235,13 @@ class PxParser:
             else:  # If there is some data
                 if str(val).isnumeric():
                     val = int(val)
-                else:
+                elif str(val).replace('.', '').isnumeric():
                     try:
                         val = float(val)
                     except ValueError:
                         val = str(val)
+                else:
+                    val = str(val)
 
             data.append(val)
 
@@ -263,7 +263,7 @@ class PxParser:
                         if count == 0 and to_round_time > 0:  # If it's first extra message and time is not a round number
                             # Multiply every string in list by to_round_time multiplier
                             for i in range(len(curr_data)):
-                                if type(curr_data[i]) == "str" or i in self.__msg_id_ignore or curr_data[i] == self.__prev_data[i]:
+                                if type(curr_data[i]) is str or i in self.__msg_id_ignore or curr_data[i] == self.__prev_data[i]:
                                     continue
                                 elif self.__next_data[i] > curr_data[i]:
                                     curr_data[i] += curr_data[i] * \
@@ -275,12 +275,14 @@ class PxParser:
                             self.__printData(curr_data)
                         tmp = curr_data[:]  # Create a temporary data list
                         for id in range(len(curr_data)):  # Interpolate data
-                            if type(tmp[id]) == "str" or id in self.__msg_id_ignore or self.__next_data[id] == curr_data[id]:
+                            if type(tmp[id]) is str or id in self.__msg_id_ignore or self.__next_data[id] == curr_data[id]:
                                 continue
                             elif self.__next_data[id] > curr_data[id]:
-                                tmp[id] = curr_data[id] + (((self.__next_data[id] - curr_data[id]) / extra_msg_count) * count)
+                                tmp[id] = curr_data[id] + (
+                                    ((self.__next_data[id] - curr_data[id]) / extra_msg_count) * count)
                             else:
-                                tmp[id] = curr_data[id] - (((curr_data[id] - self.__next_data[id]) / extra_msg_count) * count)
+                                tmp[id] = curr_data[id] - (
+                                    ((curr_data[id] - self.__next_data[id]) / extra_msg_count) * count)
                         tmp[self.__time_msg_id] = self.msg_count * 100
                         self.__printData(tmp)  # Print data
                 else:  # If __prev_data empty
@@ -291,15 +293,16 @@ class PxParser:
         else:
             self.__printData(data)
 
-    def __parseMsgDescr(self):  # Get message description
+    def __parseMsgDescr(self):
+
         data = struct.unpack(
             self.MSG_FORMAT_STRUCT, self.__buffer[self.__pointer + 3: self.__pointer + self.MSG_FORMAT_PACKET_LEN])
         msg_type = data[0]
         if msg_type != self.MSG_TYPE_FORMAT:
             msg_length = data[1]
-            msg_name = self.__parseCString(data[2])
-            msg_format = self.__parseCString(data[3])
-            msg_labels = self.__parseCString(data[4]).split(",")
+            msg_name = self.__to_utf8(data[2])
+            msg_format = self.__to_utf8(data[3])
+            msg_labels = self.__to_utf8(data[4]).split(",")
             msg_struct = ""
             msg_mults = []
             for c in msg_format:
@@ -321,22 +324,21 @@ class PxParser:
                         msg_type, msg_length, msg_name, msg_format, str(msg_labels), msg_struct, msg_mults))
         self.__pointer += self.MSG_FORMAT_PACKET_LEN
 
-    def __parseMsg(self, msg_descr):  # Get raw data from file
+    def __parseMsg(self, msg_descr):
+        """ Get raw data from file """
         # Disassemble msg_descr
         msg_length, msg_name, msg_format, msg_labels, msg_struct, msg_mults = msg_descr
-        show_fields = self.__filterMsg(msg_name)  # Get data from filter
+        show_fields = self.__filterMsg(msg_name)  # Get filter
 
-        if (show_fields != None):  # If filter is not empty
-            # Parse data from file to list
+        if show_fields:   # Parse data from file to list
             data = list(struct.unpack(
                 msg_struct, self.__buffer[self.__pointer+self.MSG_HEADER_LEN:self.__pointer+msg_length]))
 
             for i in range(len(data)):
                 if type(data[i]) is str:
-                    data[i] = self.__parseCString(data[i])
-                m = msg_mults[i]  # Get multiplier from structure
-                if m:
-                    data[i] = data[i] * m
+                    data[i] = self.__to_utf8(data[i])
+                if msg_mults[i]:
+                    data[i] *= msg_mults[i]  # apply multuplyer if needed
                 label = msg_labels[i]
                 if label in show_fields:  # If label is in filter
                     # Add parsed raw data to __txt_data
@@ -349,27 +351,21 @@ class PxParser:
         self.__pointer += msg_length
 
     def __printData(self, data):
-        for id in range(len(data)):
-            if type(data[id]) != "str":
-                continue
-            if id == self.__status_msg_id:
-                data[self.__status_msg_id] = data[self.__status_msg_id].strip(
-                    "'").lstrip("b'").strip('\\x00')
-                continue
+        """ Write data to file/output """
 
-            # If message is longer than 10 characters
-            if len(data[id]) > 10 and id != self.__time_msg_id:
-                data[id] = data[id][:8]  # Trim to 8 characters
+        data = list(map(lambda val: val.strip("'").strip(
+            "b'").strip("\\x00") if type(data) is str and "\\x00" in data else val, data))  # Clear null termination if needed
 
-        if type(self.__file) is TextIOWrapper:
+        if type(self.__file) is TextIOWrapper:  # Convert to str, join with delim and write to file
             print(self.__delim_char.join(list(map(str, data))), file=self.__file)
+
         elif type(self.__file) is Worksheet:
             for d in data:
-                try:
+                try:  # Try converting to float
                     self.__file.write(self.msg_count + 1,
                                       data.index(d), float(d))
-                except ValueError:
+                except ValueError:  # If failed, convert to string
                     self.__file.write(self.msg_count + 1, data.index(d), d)
-        else:
+        else:  # If no output file set, write to stdout
             print(self.__delim_char.join(data))
         self.msg_count += 1
