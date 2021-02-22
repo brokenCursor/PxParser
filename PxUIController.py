@@ -10,7 +10,7 @@ from PyQt5 import QtCore, QtWidgets
 class UIController(QtWidgets.QMainWindow, PxUILayout):
 
     __file_list = set()
-    progess = 0  # Exporting progress
+    progess = 0  # Export progress
     __threads = []
 
     filter = [('GPS', ['TimeUS', 'Lng', 'Lat', 'Spd']), ('BARO', ['Alt']),
@@ -22,14 +22,18 @@ class UIController(QtWidgets.QMainWindow, PxUILayout):
     def_namespace = {'GPS_TimeUS': 'GPS_TimeUS', 'GPS_Lng': 'GPS_Lng', 'GPS_Lat': 'GPS_Lat', 'GPS_Spd': 'GPS_Spd',
                      'BARO_Alt': 'BARO_Alt', 'AHR2_Roll': 'AHR2_Roll', 'AHR2_Pitch': 'AHR2_Pitch', 'AHR2_Yaw': 'AHR2_Yaw', 'MSG_Message': 'MSG_Message'}
 
-    def __init__(self):  # Initialize UI
+    def __init__(self):
+        """ Initialize UI """
+
         super().__init__()
         self.setupUi(self)
         self.__setup_actions()
         self.__setup_buttons()
         self.__setup_table()
 
-    def __setup_actions(self):  # Setup actions' connections
+    def __setup_actions(self) -> None:
+        """ Connect actions to their fucntions, set shortcuts and tips """
+
         self.actionExit.setShortcut('Ctrl+Q')
         self.actionExit.setStatusTip('Quit PxParser')
         self.actionExit.triggered.connect(self.close)
@@ -47,68 +51,87 @@ class UIController(QtWidgets.QMainWindow, PxUILayout):
         self.actionDeleteItem.triggered.connect(
             self.__table_remove_selected_items)
 
-    def __setup_buttons(self):  # Setup buttons' actions
+    def __setup_buttons(self) -> None:
+        """ Connect buttons to their functions, set tips """
+
         self.importButton.clicked.connect(self.__import_file)
         self.importButton.setStatusTip('Import file')
+
         self.exportButton.clicked.connect(self.__export)
         self.exportButton.setStatusTip('Export files')
+
         self.deleteButton.clicked.connect(self.__table_remove_selected_items)
         self.deleteButton.setStatusTip('Delete selected files')
 
-    def __setup_table(self):  # Setup table of files
+    def __setup_table(self) -> None:
+        """ Create file table, set header """
+
         self.fileTable.setColumnCount(1)
         header = self.fileTable.horizontalHeader()
         header.setSectionResizeMode(0, QtWidgets.QHeaderView.Stretch)
         self.fileTable.setHorizontalHeaderLabels(['File path'])
 
-    def __table_add_item(self, item):  # Add file to table of files
-        rowPosition = self.fileTable.rowCount()
-        self.fileTable.insertRow(rowPosition)
-        new_item = QtWidgets.QTableWidgetItem(item)
-        new_item.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled)
-        self.fileTable.setItem(
-            rowPosition, 0, new_item)
+    def __table_add_item(self, item) -> None:
+        """ Add item (file) to table, disable editing """
 
-    # Remove selected items from table
-    def __table_remove_selected_items(self):
+        rowPosition = self.fileTable.rowCount()  # Set new row position as last row
+        self.fileTable.insertRow(rowPosition)  # Insert row
+        new_item = QtWidgets.QTableWidgetItem(item)  # Create item widget
+        new_item.setFlags(QtCore.Qt.ItemIsSelectable |
+                          QtCore.Qt.ItemIsEnabled)  # Set editing flags
+        self.fileTable.setItem(
+            rowPosition, 0, new_item)  # Insert item
+
+    def __table_remove_selected_items(self) -> None:
+        """ Remove selected items from table """
+
         items_to_remove = self.fileTable.selectedItems()
         self.__table_remove_items(items_to_remove)
 
-    # Remove items from table o files and list if files
-    def __table_remove_items(self, items_to_remove):
+    def __table_remove_items(self, items_to_remove) -> None:
+        """ Remove items from items_to_remove from table and file_list"""
+
         for item in items_to_remove:
             self.__file_list.remove(item.text())
             self.fileTable.removeRow(item.row())
 
-    def __table_get_all_items(self):  # Get a list of items from table
+    def __table_get_all_items(self) -> list:
+        """ Get all items from table """
+
         items = list()
         for col in range(self.fileTable.columnCount()):
             for row in range(self.fileTable.rowCount()):
                 items.append(self.fileTable.item(row, col))
         return items
 
-    def __get_file_path(self):  # Get path to file for importing
+    def __get_file_path(self) -> str:
+        """ Get path to file for importing """
+
         return QtWidgets.QFileDialog.getOpenFileName(self, 'Select file',
                                                      '.', "Log files (*.bin *.ulg)")[0]
 
-    def __get_export_directory(self):  # Select the directory to export to
+    def __get_export_directory(self) -> str:
+        """ Get path to directoty for exported files """
+
         return QtWidgets.QFileDialog.getExistingDirectory(self, 'Select directory')
 
-    # Update progress bar by thread_progress / number_of_threads
-    def updateProgressbar(self, progress):
+    def updateProgressbar(self, progress) -> None:
+        """ Add progress / len(file_list) to progressbar """
+
         self.progess += int(progress) / len(self.__file_list)
         self.progressBar.setValue(self.progess)
 
-    def __createThread(self, worker):  # Create worker thread
+    def __createThread(self, worker) -> PxExportWorker:
         thread = worker
         worker.finished.connect(worker.stop)
         return thread
 
-    def __export(self):  # Export files
+    def __export(self) -> None:
+        """ Export function. Exports all/selected files from table """
+
         self.statusbar.showMessage('Exporting...')
         self.__disable_ui()
         time_msg = "GPS_TimeUS"
-        data_msg = "MSG_Message"
         interpolation = self.__get_interpolation()
         namespace = self.__get_namespace()
         export_as = self.__get_selected_file_type()
@@ -118,40 +141,39 @@ class UIController(QtWidgets.QMainWindow, PxUILayout):
         self.progressBar.setValue(self.progess)
         self.progressBar.show()
         self.__threads.clear()
-        try:
-            export_to = self.__get_export_directory()
-        except PermissionError:
-            self.statusbar.showMessage('Export aborted: PermissionError')
-            return
+        export_to = self.__get_export_directory()
         for item in items_to_export:
             file = item.text()
             output_file_name = export_to + '/' +\
-                file.split('/')[-1].split('.')[0]
+                file.split('/')[-1].split('.')[0] # Create full output file name
             worker = PxExportWorker(
-                file, output_file_name, namespace, self.filter, export_as, time_msg,
-                data_msg, [time_msg, data_msg], interpolation, )
-            thread = self.__createThread(worker)
-            thread.start()
-            self.__threads.append(thread)
+                file, output_file_name, namespace, self.filter, export_as,
+                time_msg, [time_msg], interpolation) # Create worker object
+            thread = self.__createThread(worker) # Create thread with worker
+            thread.start() # Start worker thread
+            self.__threads.append(thread) # Save thread to list
             prev_progress = thread.parser.completed
-            while thread.isRunning():
+            while thread.isRunning(): # Update progress bar. Re-writing needed
                 curr_progress = thread.parser.completed
                 self.updateProgressbar(curr_progress - prev_progress)
                 prev_progress = curr_progress
             self.updateProgressbar(10)
             time.sleep(1)
             self.progressBar.hide()
-        self.__table_remove_items(items_to_export)
+        self.__table_remove_items(items_to_export) # Remove exported items
         self.statusbar.showMessage("Export done")
         self.__enable_ui()
 
-    def __import_file(self):  # Import files
+    def __import_file(self) -> None:
+        """ Add file to file_list and file table """
+
         file_path = self.__get_file_path()
         if file_path and file_path not in self.__file_list:
             self.__table_add_item(file_path)
             self.__file_list.add(file_path)
 
-    def __get_selected_file_type(self):  # Get selected export filetype
+    def __get_selected_file_type(self) -> str:
+        """ Return user-selected file type"""
         if self.txtButton.isChecked():
             return 'txt'
         elif self.csvButton.isChecked():
@@ -159,7 +181,9 @@ class UIController(QtWidgets.QMainWindow, PxUILayout):
         elif self.xlsxButton.isChecked():
             return 'xlsx'
 
-    def __get_interpolation(self):
+    def __get_interpolation(self) -> bool:
+        """ Get interpolation flag from UI """
+
         if self.OnButton.isChecked():
             return True
         elif self.OffButton.isChecked():
