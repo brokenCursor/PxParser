@@ -56,7 +56,6 @@ class PxParser:
     __file = ""
     __txt_updated = False
     __time_msg_id = 0
-    __status_msg = ""
     __debug_out = False
     __correct_errors = False
     __interpolation = False
@@ -64,28 +63,29 @@ class PxParser:
     completed = 0
     msg_count = 0
 
-    # Set a custom namespace to print instead of __txt_columns
     def set_namespace(self, namespace):
+        """ Set custom names for column headers """
+
         self.__namespace = namespace
 
-    # Set a char to print if there is no data in the column
     def set_null_char(self, csv_null):
+        """ Set null char for None values """
+
         self.__null_char = csv_null
 
-    # Set a message header filter for output
     def set_msg_filter(self, msg_filter):
+        """ Set whitelist of allowed message labels """
+
         self.__msg_filter = msg_filter
 
-    # Set name for message to parse time from
     def set_time_msg(self, time_msg):
+        """ Set label of message to get time from """
+
         self.__time_msg = time_msg
 
-    # Set a status message name. Defaulted to log
-    def set_data_msg(self, status_msg):
-        self.__status_msg = status_msg
-
-    # Set enable/disable debug output
     def enable_debug_out(self):
+        """ Enable debug output to stdout """
+
         self.__debug_out = True
 
     # Enable error correction. If enabled tries to bypass errors error
@@ -99,8 +99,9 @@ class PxParser:
     def set_msg_ignore(self, msg_ignore):
         self.__msg_ignore = msg_ignore
 
-    #
     def set_output_file(self, file_name, file_type):
+        """ Creates output file with provided file type and name """
+
         if file_type == 'txt' or file_type == 'csv':
             self.__file = open(file_name + '.' + file_type, "w+")
             self.__delim_char = ',' if file_type == 'csv' else '\t'
@@ -112,9 +113,12 @@ class PxParser:
     # Convert Cstring to string object
     def __to_utf8(self, cstr):
         """ Convert ASCII to UTF-8 """
+
         return str(cstr, 'ascii').split('\0')[0]
 
-    def process(self, fn):  # Main function
+    def process(self, fn):
+        """ Main function. Converts provided .bin file to human-readable text format """
+
         file_size = Path(fn).stat().st_size  # Get file size
         if self.__debug_out:
             for msg_name, show_fields in self.__msg_filter:
@@ -170,10 +174,12 @@ class PxParser:
 
     def __bytesLeft(self):
         """ Get amout of bytes left in file being processed """
+
         return len(self.__buffer) - self.__pointer
 
     def __filterMsg(self, msg_name):
         """ Create message filter """
+
         show_fields = "*"
         if self.__msg_filter_map:
             show_fields = self.__msg_filter_map.get(msg_name)
@@ -181,6 +187,7 @@ class PxParser:
 
     def __initOutput(self):
         """ Create output file, write column headers """
+
         if not self.__msg_filter:  # If filter is empty, enable all messages
             for msg_name in self.__msg_names:
                 self.__msg_filter.append((msg_name, "*"))
@@ -199,7 +206,6 @@ class PxParser:
         for col in self.__txt_columns:
             if col in self.__msg_ignore:  # If message col is in __msg_ignore
                 self.__msg_id_ignore.add(self.__txt_columns.index(col))
-        self.__status_msg_id = self.__txt_columns.index(self.__status_msg)
         self.__time_msg_id = self.__txt_columns.index(self.__time_msg)
         self.__msg_id_ignore.add(self.__time_msg_id)
 
@@ -224,8 +230,9 @@ class PxParser:
         else:
             print(self.__delim_char.join(headers))
 
-    def __processData(self):  # Process raw data
+    def __processData(self):
         """ Convert to correct type, apply interpolation if needed """
+
         data = []
         for full_label in self.__txt_columns:  # Fill data from __txt_columns
             # Get single string from data dictionary
@@ -240,7 +247,6 @@ class PxParser:
                     val = float(val)
                 else:
                     val = str(val)
-
             data.append(val)
 
         if self.__interpolation:
@@ -257,7 +263,8 @@ class PxParser:
                     to_round_time = (100 - (time_diff % 100)) * 0.0001
                     extra_msg_count = time_diff // 100
                     for count in range(extra_msg_count):
-                        if count == 0 and round(to_round_time, 2) > 0:  # If it's first extra message and time is not a round number
+                        # If it's first extra message and time is not a round number
+                        if count == 0 and round(to_round_time, 2) > 0:
                             # Multiply every string in list by to_round_time multiplier
                             for i in range(len(curr_data)):
                                 try:
@@ -270,7 +277,8 @@ class PxParser:
                                         curr_data[i] -= curr_data[i] * \
                                             to_round_time
                                 except TypeError:
-                                    print(curr_data[i], self.__next_data[i] if self.__next_data[i] else 'null')
+                                    print(
+                                        curr_data[i], self.__next_data[i] if self.__next_data[i] else 'null')
                             curr_data[self.__time_msg_id] = self.msg_count * 100
                             self.__printData(curr_data)
                         tmp = curr_data[:]  # Create a temporary data list
@@ -294,7 +302,8 @@ class PxParser:
             self.__printData(data)
 
     def __parseMsgDescr(self):
-
+        """ Unpack message description, save to globals """
+        
         data = struct.unpack(
             self.MSG_FORMAT_STRUCT, self.__buffer[self.__pointer + 3: self.__pointer + self.MSG_FORMAT_PACKET_LEN])
         msg_type = data[0]
@@ -325,10 +334,10 @@ class PxParser:
         self.__pointer += self.MSG_FORMAT_PACKET_LEN
 
     def __parseMsg(self, msg_descr):
-        """ Get raw data from file """
-        # Disassemble msg_descr
+        """ Get raw data from message """
+
         msg_length, msg_name, msg_format, msg_labels, msg_struct, msg_mults = msg_descr
-        show_fields = self.__filterMsg(msg_name)  # Get filter
+        show_fields = self.__filterMsg(msg_name)  # Create filter
 
         if show_fields:   # Parse data from file to list
             data = list(struct.unpack(
@@ -351,7 +360,7 @@ class PxParser:
         self.__pointer += msg_length
 
     def __printData(self, data):
-        """ Write data to file/output """
+        """ Write data to file/stdout """
 
         data = list(map(lambda val: val.lstrip("b'").rstrip(
             "'").rstrip("\\x00") if type(data) is str and "\\x00" in data else val, data))  # Clear null termination if needed
